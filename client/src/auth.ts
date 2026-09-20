@@ -1,6 +1,7 @@
 import liff from '@line/liff';
 
 export type AuthUser = {
+  id?: string;
   lineUserId: string;
   displayName: string;
   pictureUrl?: string;

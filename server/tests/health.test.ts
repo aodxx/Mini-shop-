@@ -22,14 +22,20 @@ describe('GET /health', () => {
     const app = createApp({
       env: testEnv,
       userRepository: {
-        upsertFromLine: async () => ({ lineUserId: 'test', displayName: 'Test', role: 'customer' as const }),
+        upsertFromLine: async () => ({ id: 'user-test', lineUserId: 'test', displayName: 'Test', role: 'customer' as const }),
         findByLineUserId: async () => null,
       },
       productRepository: {
         list: async () => [],
+        findActiveByIds: async () => [],
         create: async (input) => ({ id: 'test', ...input, isActive: input.isActive ?? true, sortOrder: input.sortOrder ?? 0 }),
         update: async () => null,
         deactivate: async () => false,
+      },
+      orderRepository: {
+        create: async () => { throw new Error('not used'); },
+        listByUser: async () => [],
+        cancel: async () => false,
       },
     });
     apps.add(app);

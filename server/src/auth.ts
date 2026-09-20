@@ -15,6 +15,7 @@ const lineTokenPayloadSchema = z.object({
 export type LineTokenPayload = z.infer<typeof lineTokenPayloadSchema>;
 
 export type AuthUser = {
+  id?: string;
   lineUserId: string;
   displayName: string;
   pictureUrl?: string;
@@ -68,6 +69,7 @@ export function createAuthService(options: AuthServiceOptions) {
 
   async function createSession(user: AuthUser) {
     return new SignJWT({
+      ...(user.id ? { id: user.id } : {}),
       lineUserId: user.lineUserId,
       displayName: user.displayName,
       pictureUrl: user.pictureUrl,
@@ -108,6 +110,7 @@ export function createAuthService(options: AuthServiceOptions) {
     }
 
     return {
+      ...(typeof payload.id === 'string' ? { id: payload.id } : {}),
       lineUserId: payload.lineUserId,
       displayName: payload.displayName,
       ...(typeof payload.pictureUrl === 'string' ? { pictureUrl: payload.pictureUrl } : {}),

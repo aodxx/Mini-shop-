@@ -5,6 +5,8 @@ import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import { createAuthService, type AuthService } from './auth.js';
 import { closeDatabase, getDatabase } from './db/client.js';
 import { parseEnv, type AppEnv } from './env.js';
+import { createOrderRepository, type OrderRepository } from './orders/repository.js';
+import { createOrderService, type OrderService } from './orders/service.js';
 import {
   createProductRepository,
   type CreateProductInput,
@@ -22,6 +24,8 @@ type AppOptions = {
   env?: AppEnv;
   userRepository?: UserRepository;
   productRepository?: ProductRepository;
+  orderRepository?: OrderRepository;
+  orderService?: OrderService;
 };
 
 function getSessionToken(request: FastifyRequest) {
@@ -35,13 +39,20 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     ?? (options.authService ? undefined : createUserRepository(getDatabase()));
   const productRepository = options.productRepository
     ?? (options.authService ? undefined : createProductRepository(getDatabase()));
+  const orderRepository = options.orderRepository
+    ?? (options.authService ? undefined : createOrderRepository(getDatabase()));
   const authService = options.authService ?? createAuthService({
     channelId: env.LINE_CHANNEL_ID,
     sessionSecret: env.SESSION_SECRET,
     ...(userRepository ? { userRepository } : {}),
   });
+  const orderService = options.orderService ?? (
+    productRepository && orderRepository
+      ? createOrderService({ productRepository, orderRepository })
+      : undefined
+  );
 
-  if (!options.authService && !options.userRepository && !options.productRepository) {
+  if (!options.authService && !options.userRepository && !options.productRepository && !options.orderRepository) {
     app.addHook('onClose', async () => closeDatabase());
   }
 
@@ -172,6 +183,75 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     if (!productRepository || !(await requireProductManager(request, reply))) return reply;
     const deactivated = await productRepository.deactivate(request.params.id);
     if (!deactivated) return reply.code(404).send({ error: 'Product not found' });
+    return reply.code(204).send();
+  });
+
+  const orderCreateSchema = z.object({
+    items: z.array(z.object({
+      productId: z.string().min(1),
+      quantity: z.number().int().min(1).max(99),
+      unitPriceSatang: z.number().int().nonnegative().optional(),
+    })).min(1).max(50),
+    customerNote: z.string().trim().max(1000).optional(),
+  });
+
+  async function requireOrderUser(request: FastifyRequest, reply: FastifyReply) {
+    const token = getSessionToken(request);
+    if (!token) {
+      await reply.code(401).send({ error: 'Not authenticated' });
+      return null;
+    }
+    try {
+      const user = await authService.readSession(token);
+      if (!user.id) {
+        await reply.code(409).send({ error: 'User is not persisted' });
+        return null;
+      }
+      return user;
+    } catch {
+      await reply.code(401).send({ error: 'Invalid session' });
+      return null;
+    }
+  }
+
+  app.post<{ Body: { items: Array<{ productId: string; quantity: number; unitPriceSatang?: number }>; customerNote?: string } }>('/api/orders', async (request, reply) => {
+    if (!orderService) return reply.code(503).send({ error: 'Order service is unavailable' });
+    const user = await requireOrderUser(request, reply);
+    if (!user) return reply;
+    const parsed = orderCreateSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'Invalid order payload' });
+
+    try {
+      const input = {
+        userId: user.id!,
+        items: parsed.data.items.map(({ productId, quantity, unitPriceSatang }) => ({
+          productId,
+          quantity,
+          ...(unitPriceSatang !== undefined ? { unitPriceSatang } : {}),
+        })),
+        ...(parsed.data.customerNote !== undefined ? { customerNote: parsed.data.customerNote } : {}),
+      };
+      const order = await orderService.createOrder(input);
+      return reply.code(201).send({ order });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create order';
+      return reply.code(400).send({ error: message });
+    }
+  });
+
+  app.get('/api/orders', async (request, reply) => {
+    if (!orderService) return reply.code(503).send({ error: 'Order service is unavailable' });
+    const user = await requireOrderUser(request, reply);
+    if (!user) return reply;
+    return reply.send({ orders: await orderService.listOrders(user.id!) });
+  });
+
+  app.post<{ Params: { id: string } }>('/api/orders/:id/cancel', async (request, reply) => {
+    if (!orderService) return reply.code(503).send({ error: 'Order service is unavailable' });
+    const user = await requireOrderUser(request, reply);
+    if (!user) return reply;
+    const cancelled = await orderService.cancelOrder(user.id!, request.params.id);
+    if (!cancelled) return reply.code(409).send({ error: 'Order cannot be cancelled' });
     return reply.code(204).send();
   });
 

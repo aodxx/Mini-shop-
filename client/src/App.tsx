@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getCurrentUser, loginWithLine, logoutFromLine, type AuthUser } from './auth';
+import { addProductToCart, clearCart, loadCart, updateCartQuantity, type CartItem } from './cart';
+import { cancelOrder, createOrder, listOrders, type Order } from './orders';
 import { createProduct, deactivateProduct, listProducts, type Product } from './products';
 import './styles.css';
 
@@ -23,6 +25,10 @@ export default function App() {
   const [newProductPrice, setNewProductPrice] = useState('');
   const [newProductCategory, setNewProductCategory] = useState('ทั่วไป');
   const [savingProduct, setSavingProduct] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [checkoutState, setCheckoutState] = useState<'idle' | 'submitting'>('idle');
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
@@ -53,12 +59,24 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    setCart(loadCart());
+  }, []);
+
+  useEffect(() => {
     if (authState === 'checking' || authState === 'error') return;
     const includeInactive = Boolean(user && productManagers.has(user.role));
     void listProducts(includeInactive)
       .then(setProducts)
       .catch(() => setProductsError('โหลดรายการสินค้าไม่สำเร็จ'));
   }, [authState, user]);
+
+  useEffect(() => {
+    if (authState !== 'signed-in') {
+      setOrders([]);
+      return;
+    }
+    void listOrders().then(setOrders).catch(() => setOrderError('โหลดประวัติออเดอร์ไม่สำเร็จ'));
+  }, [authState]);
 
   async function handleLogin() {
     setAuthState('signing-in');
@@ -114,6 +132,39 @@ export default function App() {
     }
   }
 
+  function handleAddToCart(product: Product) {
+    setCart((current) => addProductToCart(current, product));
+    setOrderError(null);
+  }
+
+  async function handleCheckout() {
+    if (!user) {
+      setAuthError('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ');
+      return;
+    }
+    setCheckoutState('submitting');
+    setOrderError(null);
+    try {
+      const order = await createOrder(cart);
+      clearCart();
+      setCart([]);
+      setOrders((current) => [order, ...current]);
+    } catch (error) {
+      setOrderError(error instanceof Error ? error.message : 'สร้างออเดอร์ไม่สำเร็จ');
+    } finally {
+      setCheckoutState('idle');
+    }
+  }
+
+  async function handleCancelOrder(orderId: string) {
+    try {
+      await cancelOrder(orderId);
+      setOrders((current) => current.map((order) => order.id === orderId ? { ...order, status: 'cancelled' } : order));
+    } catch {
+      setOrderError('ยกเลิกออเดอร์ไม่สำเร็จ');
+    }
+  }
+
   const canManageProducts = Boolean(user && productManagers.has(user.role));
 
   return (
@@ -155,12 +206,32 @@ export default function App() {
                 <article className={`product-card ${product.isActive ? '' : 'product-inactive'}`} key={product.id}>
                   {product.imageUrl && <img className="product-image" src={product.imageUrl} alt="" />}
                   <div className="product-info"><span className="product-category">{product.category}</span><h3>{product.name}</h3>{product.description && <p>{product.description}</p>}<strong>{formatPrice(product.priceSatang)}</strong></div>
+                  {product.isActive && <button className="cart-button" type="button" onClick={() => handleAddToCart(product)}>เพิ่มลงตะกร้า</button>}
                   {canManageProducts && product.isActive && <button className="text-button product-action" type="button" onClick={() => handleDeactivate(product)}>ปิดขาย</button>}
                 </article>
               ))}
             </div>
           )}
         </section>
+
+        {cart.length > 0 && (
+          <section className="cart-panel" aria-labelledby="cart-title">
+            <div className="section-heading"><div><p className="eyebrow">CART</p><h2 id="cart-title">ตะกร้าสินค้า</h2></div><strong>{formatPrice(cart.reduce((total, item) => total + item.priceSatang * item.quantity, 0))}</strong></div>
+            <div className="cart-list">
+              {cart.map((item) => <div className="cart-row" key={item.productId}><span>{item.name}</span><div className="quantity-control"><button type="button" onClick={() => setCart((current) => updateCartQuantity(current, item.productId, item.quantity - 1))}>−</button><span>{item.quantity}</span><button type="button" onClick={() => setCart((current) => updateCartQuantity(current, item.productId, item.quantity + 1))}>+</button></div><strong>{formatPrice(item.priceSatang * item.quantity)}</strong></div>)}
+            </div>
+            <button className="line-button checkout-button" disabled={checkoutState === 'submitting'} type="button" onClick={handleCheckout}>{checkoutState === 'submitting' ? 'กำลังสร้างออเดอร์...' : user ? 'ยืนยันการสั่งซื้อ' : 'เข้าสู่ระบบเพื่อสั่งซื้อ'}</button>
+          </section>
+        )}
+
+        {user && orders.length > 0 && (
+          <section className="orders-section" aria-labelledby="orders-title">
+            <div className="section-heading"><div><p className="eyebrow">ORDER HISTORY</p><h2 id="orders-title">ออเดอร์ของฉัน</h2></div></div>
+            <div className="order-list">{orders.map((order) => <article className="order-row" key={order.id}><div><strong>{order.orderNumber}</strong><p className="muted">{order.items.map((item) => `${item.productName} × ${item.quantity}`).join(' · ')}</p></div><div className="order-summary"><span className={`order-status order-${order.status}`}>{order.status}</span><strong>{formatPrice(order.totalSatang)}</strong>{order.status === 'pending' && <button className="text-button" type="button" onClick={() => handleCancelOrder(order.id)}>ยกเลิก</button>}</div></article>)}</div>
+          </section>
+        )}
+
+        {orderError && <p className="auth-error order-error">{orderError}</p>}
 
         {canManageProducts && (
           <section className="manager-panel" aria-labelledby="manager-title">

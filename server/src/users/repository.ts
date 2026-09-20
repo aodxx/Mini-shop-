@@ -11,6 +11,7 @@ export type LineUserInput = {
 };
 
 export type AuthenticatedUser = {
+  id: string;
   lineUserId: string;
   displayName: string;
   pictureUrl?: string;
@@ -26,6 +27,7 @@ function toAuthenticatedUser(user: User): AuthenticatedUser {
   if (!user.lineUserId) throw new Error('Persisted user is missing line_user_id');
 
   return {
+    id: user.id,
     lineUserId: user.lineUserId,
     displayName: user.displayName,
     ...(user.pictureUrl ? { pictureUrl: user.pictureUrl } : {}),

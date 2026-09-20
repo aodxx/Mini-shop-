@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { menus, type Menu } from '../db/schema.js';
 
@@ -34,6 +34,7 @@ export type ProductListFilter = {
 
 export interface ProductRepository {
   list(filter?: ProductListFilter): Promise<Product[]>;
+  findActiveByIds(ids: string[]): Promise<Product[]>;
   create(input: CreateProductInput): Promise<Product>;
   update(id: string, input: UpdateProductInput): Promise<Product | null>;
   deactivate(id: string): Promise<boolean>;
@@ -65,6 +66,15 @@ export function createProductRepository(db: Database): ProductRepository {
         .where(conditions.length ? and(...conditions) : undefined)
         .orderBy(asc(menus.sortOrder), asc(menus.name));
 
+      return rows.map(toProduct);
+    },
+
+    async findActiveByIds(ids) {
+      if (ids.length === 0) return [];
+      const rows = await db
+        .select()
+        .from(menus)
+        .where(and(eq(menus.isActive, true), inArray(menus.id, ids)));
       return rows.map(toProduct);
     },
 

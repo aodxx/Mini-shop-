@@ -15,6 +15,7 @@ describe('LINE user repository integration', () => {
   it('upserts the verified LINE identity before creating a session', async () => {
     const repository: UserRepository = {
       upsertFromLine: vi.fn(async (input) => ({
+        id: 'user-1',
         lineUserId: input.lineUserId,
         displayName: input.displayName,
         role: 'customer' as const,

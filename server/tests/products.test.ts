@@ -26,6 +26,7 @@ const product: Product = {
 function makeProductRepository(): ProductRepository {
   return {
     list: vi.fn(async () => [product]),
+    findActiveByIds: vi.fn(async () => [product]),
     create: vi.fn(async (input) => ({ ...product, ...input, id: 'product-created' })),
     update: vi.fn(async (id, input) => id === product.id ? { ...product, ...input } : null),
     deactivate: vi.fn(async (id) => id === product.id),

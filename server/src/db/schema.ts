@@ -62,6 +62,21 @@ export const orders = pgTable('orders', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const orderItems = pgTable('order_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull().references(() => menus.id),
+  productName: varchar('product_name', { length: 160 }).notNull(),
+  unitPriceSatang: integer('unit_price_satang').notNull(),
+  quantity: integer('quantity').notNull(),
+  lineTotalSatang: integer('line_total_satang').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  orderIdIdx: index('order_items_order_id_idx').on(table.orderId),
+  productIdIdx: index('order_items_product_id_idx').on(table.productId),
+}));
+
 export type User = typeof users.$inferSelect;
 export type Menu = typeof menus.$inferSelect;
 export type Order = typeof orders.$inferSelect;
+export type OrderItem = typeof orderItems.$inferSelect;

@@ -58,6 +58,8 @@ Phase 3 เชื่อม `UserRepository` เข้ากับตาราง
 
 Phase 4 เพิ่ม `ProductRepository` สำหรับตาราง `menus` และ product management API ได้แก่ `GET /api/products`, `POST /api/products`, `PATCH /api/products/:id` และ `DELETE /api/products/:id` การอ่านสินค้าที่ active เปิดให้ผู้ใช้ทั่วไป ส่วนการสร้าง แก้ไข ปิดขาย และดูสินค้าที่ inactive ต้องเป็น role `staff`, `manager` หรือ `owner` การลบสินค้าเป็น soft delete โดยเปลี่ยน `is_active` เป็น `false` และมี indexes สำหรับ active/sort order กับ category
 
+Phase 5 เพิ่ม `order_items` และ order workflow โดยมี `POST /api/orders`, `GET /api/orders` และ `POST /api/orders/:id/cancel` ผู้ใช้ที่ login แล้วเท่านั้นจึงสร้างหรืออ่านออเดอร์ของตัวเองได้ server จะอ่านราคาและสถานะสินค้าใหม่จาก PostgreSQL ทุกครั้ง จึงไม่เชื่อราคาใน cart ของ browser และจะบันทึก order กับ item ใน transaction เดียวกัน Cart ฝั่ง React persist ใน `localStorage` เพื่อให้ผู้ใช้กลับมาใช้งานต่อได้
+
 ## สิ่งที่มีใน Foundation
 
 Backend มี health endpoint, tRPC router เริ่มต้น, environment validation, LINE ID token verification และ PostgreSQL schema เบื้องต้นสำหรับ users, menus และ orders ส่วน frontend มี React application shell ที่เรียก health endpoint และแสดงสถานะการเชื่อมต่อ API รวมถึงปุ่ม login ด้วย LINE

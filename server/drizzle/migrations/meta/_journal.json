@@ -15,6 +15,13 @@
       "when": 1789889237486,
       "tag": "0001_flaky_randall_flagg",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789889681890,
+      "tag": "0002_hot_screwball",
+      "breakpoints": true
     }
   ]
 }
