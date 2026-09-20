@@ -30,7 +30,7 @@ pnpm --filter @mini-shop/server db:migrate
 pnpm dev
 ```
 
-Frontend เปิดที่ `http://localhost:5173` และ API เปิดที่ `http://localhost:3000` ตรวจสุขภาพระบบได้ที่ `http://localhost:3000/health`
+Frontend เปิดที่ `http://localhost:5173` และ API เปิดที่ `http://localhost:3000` ตรวจสุขภาพระบบได้ที่ `http://localhost:3000/health` สำหรับ managed PostgreSQL ระยะแรก project เลือกใช้ [Neon Free Plan](https://neon.com/pricing) โดยตั้งค่า connection string ผ่าน `DATABASE_URL` เท่านั้น
 
 ## Quality gates
 

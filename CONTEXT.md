@@ -8,6 +8,10 @@
 
 `docs/product-foundation` เป็น branch สำหรับเอกสารชุดนี้ โดย branch ที่มี implementation ล่าสุดคือ `feature/import-linemini-app`
 
+## Database provider decision
+
+เลือก **Neon Free Plan** เป็น managed PostgreSQL provider สำหรับ development และ staging ระยะแรก การเชื่อมต่อยังใช้ `DATABASE_URL` เดิมจาก environment โดยไม่เพิ่ม Supabase SDK หรือเปลี่ยน Drizzle schema/runtime driver
+
 ## Implemented
 
 - pnpm monorepo with React/Vite client, Fastify/TypeScript server and shared package

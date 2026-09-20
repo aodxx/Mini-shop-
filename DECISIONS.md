@@ -77,3 +77,13 @@
 **Decision:** งานทั้งหมดอยู่ feature branch และต้อง review/approve ก่อน merge
 
 **Why:** ป้องกันการนำ foundation ที่ยังมี production gaps ไปใช้จริงโดยไม่ตรวจสอบ
+
+## ADR-010: ใช้ Neon เป็น managed PostgreSQL provider
+
+**Status:** Accepted
+
+**Decision:** ใช้ Neon Free Plan เป็น managed PostgreSQL สำหรับ development และ staging ระยะแรก โดยคง Drizzle ORM, `postgres` driver และ `DATABASE_URL` contract เดิมไว้ Runtime ใช้ pooled connection ส่วน migration ให้ใช้ direct connection เมื่อ provider/network รองรับ
+
+**Why:** Neon ใช้ PostgreSQL wire protocol, เชื่อมกับ code ปัจจุบันได้โดยไม่ต้องติดตั้ง database ในเครื่อง และมี free plan สำหรับ prototype/side project ส่วน provider-specific integration ไม่ควรไหลเข้า domain code
+
+**Constraints:** ห้ามใส่ connection string ใน Git, ต้องแยก database/branch ตาม environment และต้องตรวจ usage/storage limits ของ Free Plan ก่อน production
