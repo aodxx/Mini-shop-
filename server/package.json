@@ -1,0 +1,26 @@
+{
+  "name": "@mini-shop/server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "@trpc/server": "^11.0.0",
+    "drizzle-orm": "^0.36.4",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "pg": "^8.13.1",
+    "postgres": "^3.4.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "drizzle-kit": "^0.30.2"
+  }
+}
