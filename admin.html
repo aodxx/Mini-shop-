@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - ระบบหลังร้าน</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { max-width: 100%; background: var(--color-gray-100); }
+    .filter-bar {
+      display: flex; gap: 8px; padding: 12px 16px;
+      background: white; align-items: center;
+      border-bottom: 1px solid var(--color-gray-100); flex-wrap: wrap;
+    }
+    .filter-date {
+      flex: 1; min-width: 140px;
+      border: 1.5px solid var(--color-gray-200, #E5E7EB);
+      border-radius: 8px; padding: 8px 10px;
+      font-family: var(--font-main); font-size: 14px; color: var(--color-gray-900);
+    }
+    .btn-refresh {
+      background: var(--color-primary); color: white;
+      border: none; border-radius: 8px;
+      padding: 8px 16px; font-family: var(--font-main);
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .tab-bar { display: flex; background: white; border-bottom: 1px solid var(--color-gray-100); }
+    .tab-btn-admin {
+      flex: 1; padding: 12px;
+      font-family: var(--font-main); font-size: 14px; font-weight: 600;
+      border: none; background: none; cursor: pointer;
+      color: var(--color-gray-500); border-bottom: 2px solid transparent;
+    }
+    .tab-btn-admin.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .menu-admin-item {
+      background: white; border-radius: 12px;
+      padding: 14px; display: flex; align-items: center; gap: 12px;
+      box-shadow: var(--shadow-card); margin-bottom: 8px;
+    }
+    .menu-admin-img {
+      width: 52px; height: 52px; border-radius: 8px;
+      object-fit: cover; background: var(--color-gray-100);
+      flex-shrink: 0; font-size: 26px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .menu-admin-info { flex: 1; }
+    .menu-admin-name { font-weight: 700; font-size: 15px; }
+    .menu-admin-price { font-size: 13px; color: var(--color-primary-dark); font-weight: 600; }
+    .toggle-switch { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--color-gray-300); border-radius: 13px; cursor: pointer; transition: .2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      height: 20px; width: 20px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%; transition: .2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    input:checked + .toggle-slider { background: var(--color-primary); }
+    input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+    /* ===== CANCEL MODAL ===== */
+    .cancel-modal-body { padding: 8px 0 16px; }
+    .cancel-order-info {
+      background: var(--color-gray-100); border-radius: 12px;
+      padding: 14px; margin-bottom: 16px;
+    }
+    .cancel-reason-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .cancel-reason-btn {
+      padding: 12px 16px; border-radius: 10px;
+      border: 1.5px solid var(--color-gray-200, #E5E7EB);
+      background: white; font-family: var(--font-main);
+      font-size: 14px; text-align: left; cursor: pointer;
+      transition: all 0.15s; color: var(--color-gray-700);
+    }
+    .cancel-reason-btn:hover, .cancel-reason-btn.selected {
+      border-color: var(--color-danger);
+      background: #FEF2F2; color: var(--color-danger);
+    }
+    .btn-confirm-cancel {
+      width: 100%; padding: 13px;
+      background: var(--color-danger); color: white;
+      border: none; border-radius: 12px;
+      font-family: var(--font-main); font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-confirm-cancel:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-cancel-back {
+      width: 100%; padding: 11px; margin-top: 8px;
+      background: transparent; color: var(--color-gray-500);
+      border: 1.5px solid var(--color-gray-200, #E5E7EB);
+      border-radius: 12px; font-family: var(--font-main);
+      font-size: 14px; cursor: pointer;
+    }
+
+    #admin-login {
+      position: fixed; inset: 0; background: white;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      z-index: 999; padding: 32px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Login Gate -->
+<div id="admin-login">
+  <div style="font-size:48px;">🔐</div>
+  <h1 style="font-size:22px; font-weight:800;">ระบบหลังร้าน</h1>
+  <input type="password" id="admin-key-input" placeholder="กรอก Admin Key"
+    style="width:100%; max-width:300px; padding:12px 16px;
+    border:1.5px solid var(--color-gray-300); border-radius:12px;
+    font-family:var(--font-main); font-size:16px;">
+  <button onclick="AdminPage.login()" class="btn btn-primary" style="max-width:300px;">เข้าสู่ระบบ</button>
+  <div id="login-error" style="color:var(--color-danger);font-size:14px;display:none;">Admin Key ไม่ถูกต้อง</div>
+</div>
+
+<!-- Admin UI -->
+<div id="admin-ui" style="display:none;">
+
+  <div class="admin-header">
+    <div class="admin-title">🏪 ระบบหลังร้าน</div>
+    <div class="admin-subtitle" id="admin-date">วันนี้</div>
+  </div>
+
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">ออเดอร์วันนี้</div>
+      <div class="stat-value" id="stat-orders">–</div>
+      <div class="stat-unit">รายการ</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">ยอดขาย</div>
+      <div class="stat-value" id="stat-revenue">–</div>
+      <div class="stat-unit">บาท</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">กำลังทำ</div>
+      <div class="stat-value" id="stat-cooking" style="color:var(--color-secondary)">–</div>
+      <div class="stat-unit">รายการ</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">เสร็จแล้ว</div>
+      <div class="stat-value" id="stat-done" style="color:var(--color-success)">–</div>
+      <div class="stat-unit">รายการ</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <input type="date" class="filter-date" id="filter-date">
+    <button class="btn-refresh" onclick="AdminPage.loadOrders()">🔄 โหลด</button>
+    <a href="kitchen.html" style="background:var(--color-dark); color:white; border-radius:8px; padding:8px 14px; font-size:14px; font-weight:700;">
+      👨‍🍳 จอครัว
+    </a>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn-admin active" onclick="AdminPage.switchTab('orders', this)">📋 ออเดอร์</button>
+    <button class="tab-btn-admin" onclick="AdminPage.switchTab('menu', this)">🍽️ เมนู</button>
+  </div>
+
+  <div class="tab-content active" id="tab-orders">
+    <div class="orders-section" id="orders-list" style="padding-top:16px;">
+      <div class="text-center" style="padding:40px;"><div class="loading-spinner" style="margin:0 auto;"></div></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-menu">
+    <div style="padding:16px;" id="menu-admin-list">
+      <div class="text-center" style="padding:40px;"><div class="loading-spinner" style="margin:0 auto;"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CANCEL ORDER MODAL ===== -->
+<div class="modal-overlay" id="cancel-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="font-size:18px; font-weight:800; color:var(--color-danger); margin-bottom:4px;">❌ ยกเลิกออเดอร์</div>
+    <div style="font-size:13px; color:var(--color-gray-500); margin-bottom:16px;">กรุณาเลือกเหตุผลการยกเลิก</div>
+
+    <div class="cancel-order-info" id="cancel-order-info">
+      <!-- populated by script -->
+    </div>
+
+    <div class="cancel-reason-list" id="cancel-reason-list">
+      <button class="cancel-reason-btn" onclick="AdminPage.selectReason(this, 'ลูกค้าขอยกเลิก')">👤 ลูกค้าขอยกเลิก</button>
+      <button class="cancel-reason-btn" onclick="AdminPage.selectReason(this, 'วัตถุดิบหมด')">🥩 วัตถุดิบหมด</button>
+      <button class="cancel-reason-btn" onclick="AdminPage.selectReason(this, 'สั่งซ้ำ / สั่งผิด')">🔁 สั่งซ้ำ / สั่งผิด</button>
+      <button class="cancel-reason-btn" onclick="AdminPage.selectReason(this, 'ร้านปิด')">🚫 ร้านปิด</button>
+      <button class="cancel-reason-btn" onclick="AdminPage.selectReason(this, 'อื่นๆ')">📝 อื่นๆ</button>
+    </div>
+
+    <button class="btn-confirm-cancel" id="btn-confirm-cancel" disabled onclick="AdminPage.confirmCancel()">
+      ยืนยันยกเลิกออเดอร์
+    </button>
+    <button class="btn-cancel-back" onclick="AdminPage.closeCancel()">กลับ</button>
+  </div>
+</div>
+
+<script src="js/cart.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+const AdminPage = (() => {
+  let adminKey = '';
+  let cancelOrderId = null;
+  let cancelReason = null;
+
+  const STATUS_LABELS = {
+    pending:   { label: 'รอยืนยัน',  badge: 'badge-pending', next: 'cooking', nextLabel: '▶ เริ่มทำ' },
+    paid:      { label: 'ชำระแล้ว',  badge: 'badge-paid',    next: 'cooking', nextLabel: '▶ เริ่มทำ' },
+    cooking:   { label: 'กำลังทำ',   badge: 'badge-cooking', next: 'done',    nextLabel: '✅ เสร็จแล้ว' },
+    done:      { label: 'เสร็จแล้ว', badge: 'badge-done',    next: null,      nextLabel: '' },
+    cancelled: { label: 'ยกเลิกแล้ว',badge: 'badge-danger',  next: null,      nextLabel: '' },
+  };
+
+  // ===== LOGIN =====
+  function login() {
+    const key = document.getElementById('admin-key-input').value.trim();
+    if (!key) return;
+    adminKey = key;
+    APP_CONFIG.ADMIN_KEY = key;
+    API.getSalesReport(key).then(() => {
+      document.getElementById('admin-login').style.display = 'none';
+      document.getElementById('admin-ui').style.display = 'block';
+      loadAll();
+    }).catch(() => {
+      document.getElementById('login-error').style.display = 'block';
+      adminKey = '';
+    });
+  }
+
+  function loadAll() {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('filter-date').value = today;
+    document.getElementById('admin-date').textContent = formatDate(today);
+    loadOrders();
+    loadMenu();
+  }
+
+  // ===== LOAD ORDERS =====
+  async function loadOrders() {
+    const date = document.getElementById('filter-date').value;
+    const container = document.getElementById('orders-list');
+    container.innerHTML = `<div class="text-center" style="padding:40px;"><div class="loading-spinner" style="margin:0 auto;"></div></div>`;
+
+    try {
+      const result = await API.getOrders(adminKey, date);
+      const { orders, stats } = result;
+
+      document.getElementById('stat-orders').textContent = stats.totalOrders;
+      document.getElementById('stat-revenue').textContent = Math.round(stats.totalRevenue).toLocaleString('th-TH');
+      document.getElementById('stat-cooking').textContent = orders.filter(o => o.status === 'cooking').length;
+      document.getElementById('stat-done').textContent = orders.filter(o => o.status === 'done').length;
+
+      if (orders.length === 0) {
+        container.innerHTML = `<div class="text-center" style="padding:60px; color:var(--color-gray-500);">ไม่มีออเดอร์วันนี้</div>`;
+        return;
+      }
+
+      container.innerHTML = orders.map(o => {
+        const s = STATUS_LABELS[o.status] || STATUS_LABELS.pending;
+        const items = (o.items || []).map(i => { const opt = i.optionsSummary ? ` (⚙️ ${i.optionsSummary})` : ''; return `${i.menuName} × ${i.quantity}${opt}`; }).join('<br>');
+        const isCancelled = o.status === 'cancelled';
+        const isDone = o.status === 'done';
+
+        return `
+          <div class="order-card status-${o.status}" id="oc-${o.orderId}"
+            style="${isCancelled ? 'opacity:0.55;' : ''}">
+            <div class="order-card-header">
+              <div>
+                <div class="order-card-id">#${o.orderId}</div>
+                <div class="order-card-time">${formatTime(o.createdAt)} · ${o.customerName}</div>
+              </div>
+              <span class="status-badge ${s.badge}">${s.label}</span>
+            </div>
+            <div class="order-card-body">
+              <div class="order-card-items">${items}</div>
+              ${o.note ? `<div style="font-size:12px;color:var(--color-gray-500);margin-top:4px;">📝 ${o.note}</div>` : ''}
+              ${o.cancelReason ? `<div style="font-size:12px;color:var(--color-danger);margin-top:4px;">❌ ${o.cancelReason}</div>` : ''}
+              <div class="order-card-total">${formatPrice(o.totalPrice)}
+                <span style="font-size:12px;font-weight:400;color:${o.paymentStatus==='paid'?'var(--color-success)':'var(--color-warning)'}">
+                  · ${o.paymentStatus === 'paid' ? '✅ ชำระแล้ว' : '⏳ รอชำระ'}
+                </span>
+              </div>
+            </div>
+            <div class="order-card-footer">
+              ${s.next ? `<button class="btn-sm btn-sm-primary" onclick="AdminPage.updateStatus('${o.orderId}','${s.next}')">${s.nextLabel}</button>` : ''}
+              ${!isCancelled && !isDone ? `
+                <button class="btn-sm" style="background:#FEE2E2; color:var(--color-danger); border:none;"
+                  onclick="AdminPage.openCancel('${o.orderId}', '${o.customerName}', '${formatPrice(o.totalPrice)}')">
+                  ❌ ยกเลิก
+                </button>` : ''}
+              <button class="btn-sm btn-sm-outline" onclick="AdminPage.loadOrders()">🔄</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+    } catch(err) {
+      container.innerHTML = `<div class="text-center" style="padding:40px; color:var(--color-danger);">โหลดไม่สำเร็จ: ${err.message}</div>`;
+    }
+  }
+
+  // ===== LOAD MENU =====
+  async function loadMenu() {
+    const container = document.getElementById('menu-admin-list');
+    try {
+      const result = await API.getMenu(true);
+      container.innerHTML = (result.items || []).map(item => `
+        <div class="menu-admin-item">
+          <div class="menu-admin-img">
+            ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;">` : '🍽️'}
+          </div>
+          <div class="menu-admin-info">
+            <div class="menu-admin-name">${item.name}</div>
+            <div class="menu-admin-price">${formatPrice(item.price)}</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${item.status === 'active' ? 'checked' : ''}
+              onchange="AdminPage.toggleMenu('${item.id}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      `).join('');
+    } catch(err) {
+      container.innerHTML = `<div style="color:var(--color-danger);">โหลดเมนูไม่สำเร็จ</div>`;
+    }
+  }
+
+  // ===== UPDATE STATUS =====
+  async function updateStatus(orderId, status) {
+    try {
+      await API.updateOrderStatus(adminKey, orderId, status);
+      Toast.success('อัปเดตสถานะแล้ว');
+      loadOrders();
+    } catch(err) { Toast.error('เกิดข้อผิดพลาด: ' + err.message); }
+  }
+
+  async function toggleMenu(menuId, isActive) {
+    try {
+      await API.updateMenuStatus(adminKey, menuId, isActive ? 'active' : 'inactive');
+      Toast.success(isActive ? 'เปิดใช้งานเมนูแล้ว' : 'ปิดเมนูแล้ว');
+    } catch(err) { Toast.error('เกิดข้อผิดพลาด'); loadMenu(); }
+  }
+
+  // ===== CANCEL ORDER =====
+  function openCancel(orderId, customerName, total) {
+    cancelOrderId = orderId;
+    cancelReason = null;
+    document.getElementById('cancel-order-info').innerHTML = `
+      <div style="font-size:13px; color:var(--color-gray-500); margin-bottom:6px;">ออเดอร์ที่จะยกเลิก</div>
+      <div style="font-weight:700; font-size:15px;">#${orderId}</div>
+      <div style="font-size:13px; color:var(--color-gray-600, #4B5563); margin-top:2px;">
+        ${customerName} · ${total}
+      </div>
+    `;
+    // Reset reason buttons
+    document.querySelectorAll('.cancel-reason-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('btn-confirm-cancel').disabled = true;
+    document.getElementById('cancel-modal').classList.add('show');
+  }
+
+  function selectReason(btn, reason) {
+    cancelReason = reason;
+    document.querySelectorAll('.cancel-reason-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('btn-confirm-cancel').disabled = false;
+  }
+
+  async function confirmCancel() {
+    if (!cancelOrderId || !cancelReason) return;
+    const btn = document.getElementById('btn-confirm-cancel');
+    btn.disabled = true;
+    btn.textContent = 'กำลังยกเลิก...';
+
+    try {
+      await API.updateOrderStatus(adminKey, cancelOrderId, 'cancelled');
+      Toast.success(`ยกเลิกออเดอร์ #${cancelOrderId} แล้ว`);
+      closeCancel();
+      loadOrders();
+    } catch(err) {
+      Toast.error('ยกเลิกไม่สำเร็จ: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'ยืนยันยกเลิกออเดอร์';
+    }
+  }
+
+  function closeCancel() {
+    document.getElementById('cancel-modal').classList.remove('show');
+    cancelOrderId = null;
+    cancelReason = null;
+  }
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-btn-admin').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  // Auto-refresh ทุก 30 วินาที
+  setInterval(() => { if (adminKey) loadOrders(); }, 30000);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('admin-key-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') login();
+    });
+    // ปิด modal เมื่อกด overlay
+    document.getElementById('cancel-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeCancel();
+    });
+  });
+
+  return { login, loadOrders, loadMenu, updateStatus, toggleMenu, switchTab, openCancel, selectReason, confirmCancel, closeCancel };
+})();
+</script>
+</body>
+</html>

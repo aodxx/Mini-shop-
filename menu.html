@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#06C755">
+  <title>เมนูอาหาร</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
+  <style>
+    .btn-add-cart.hidden { display: none; }
+    .hidden { display: none; }
+
+    /* Order bar */
+    #order-bar {
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+      width:100%; max-width:480px;
+      padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px) + 50px);
+      background:white; border-top:1px solid var(--color-gray-100);
+      box-shadow:0 -4px 16px rgba(0,0,0,0.1); z-index:100; display:none;
+    }
+    #order-bar.show { display:block; }
+    .bar-inner {
+      background:linear-gradient(135deg,var(--color-primary),var(--color-primary-dark));
+      border-radius:var(--radius-full); padding:14px 20px;
+      display:flex; align-items:center; justify-content:space-between;
+      color:white; cursor:pointer;
+    }
+    .bar-left { display:flex; align-items:center; gap:10px; }
+    .bar-count-badge {
+      background:rgba(255,255,255,0.25); border-radius:var(--radius-full);
+      padding:3px 10px; font-size:13px; font-weight:700;
+    }
+    .bar-label { font-size:15px; font-weight:700; }
+    .bar-total { font-size:16px; font-weight:800; }
+
+    /* Option badge บนการ์ด */
+    .option-badge {
+      position:absolute; top:8px; right:8px;
+      background:rgba(0,0,0,0.55); color:white;
+      font-size:10px; font-weight:700; padding:3px 8px;
+      border-radius:999px;
+    }
+
+    /* ===== OPTIONS POPUP ===== */
+    #options-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.5);
+      z-index:300; display:none; align-items:flex-end; justify-content:center;
+      backdrop-filter:blur(4px);
+    }
+    #options-overlay.show { display:flex; }
+    .options-sheet {
+      background:white; border-radius:24px 24px 0 0;
+      width:100%; max-width:480px; max-height:90vh; overflow-y:auto;
+      animation:slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .options-handle {
+      width:40px; height:4px; background:var(--color-gray-300);
+      border-radius:999px; margin:14px auto 0;
+    }
+    .options-header {
+      padding:16px 20px 12px;
+      border-bottom:1px solid var(--color-gray-100);
+    }
+    .options-item-name { font-size:18px; font-weight:800; color:var(--color-gray-900); }
+    .options-base-price { font-size:14px; color:var(--color-gray-500); margin-top:2px; }
+
+    /* กลุ่มตัวเลือก */
+    .option-group { padding:16px 20px 0; }
+    .option-group-title {
+      font-size:14px; font-weight:700; color:var(--color-gray-700);
+      margin-bottom:10px; display:flex; align-items:center; gap:6px;
+    }
+    .required-badge {
+      background:#FEE2E2; color:var(--color-danger);
+      font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px;
+    }
+    .option-choices { display:flex; flex-direction:column; gap:8px; }
+    .option-choice {
+      display:flex; align-items:center; gap:12px; padding:12px 14px;
+      border:1.5px solid var(--color-gray-200,#E5E7EB);
+      border-radius:12px; cursor:pointer; transition:all 0.15s;
+      background:white;
+    }
+    .option-choice.selected {
+      border-color:var(--color-primary);
+      background:var(--color-primary-light);
+    }
+    .choice-radio {
+      width:18px; height:18px; border-radius:50%;
+      border:2px solid var(--color-gray-300);
+      flex-shrink:0; transition:all 0.15s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .choice-radio.active { border-color:var(--color-primary); background:var(--color-primary); }
+    .choice-radio.active::after {
+      content:''; width:7px; height:7px; border-radius:50%; background:white;
+    }
+    .choice-name { flex:1; font-size:14px; font-weight:600; color:var(--color-gray-900); }
+    .extra-price {
+      font-size:13px; font-weight:700; color:var(--color-primary-dark);
+      background:var(--color-primary-light); padding:2px 8px; border-radius:999px;
+    }
+
+    /* ปุ่มยืนยัน */
+    .options-footer {
+      padding:16px 20px;
+      padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
+      position:sticky; bottom:0; background:white;
+      border-top:1px solid var(--color-gray-100);
+    }
+    #options-confirm-btn {
+      width:100%; padding:14px;
+      background:linear-gradient(135deg,var(--color-primary),var(--color-primary-dark));
+      color:white; border:none; border-radius:999px;
+      font-family:var(--font-main); font-size:15px; font-weight:700;
+      cursor:pointer; box-shadow:0 4px 12px rgba(6,199,85,0.35);
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <a href="index.html" class="header-back">←</a>
+  <span class="header-title">เมนูอาหาร</span>
+  <a href="cart.html" class="header-action">🛒
+    <span class="cart-badge" id="cart-badge"></span>
+  </a>
+</header>
+
+<div class="category-tabs" id="category-tabs">
+  <button class="tab-btn active">ทั้งหมด</button>
+</div>
+
+<main style="padding:12px 16px 120px;">
+  <div class="menu-grid" id="menu-grid"></div>
+</main>
+
+<!-- Order Bar -->
+<div id="order-bar">
+  <div class="bar-inner" onclick="window.location.href='cart.html'">
+    <div class="bar-left">
+      <span class="bar-count-badge bar-count">0 รายการ</span>
+      <span class="bar-label">ดูตะกร้า</span>
+    </div>
+    <span class="bar-total">฿0</span>
+  </div>
+</div>
+
+<!-- ===== OPTIONS POPUP ===== -->
+<div id="options-overlay" onclick="OptionsPopup.closeOnOverlay(event)">
+  <div class="options-sheet">
+    <div class="options-handle"></div>
+    <div class="options-header">
+      <div class="options-item-name" id="options-item-name">ชื่อเมนู</div>
+      <div class="options-base-price">ราคาเริ่มต้น: <span id="options-base-price"></span></div>
+    </div>
+    <div id="options-groups" style="padding-bottom:16px;"></div>
+    <div class="options-footer">
+      <!-- ✅ ไม่ใช้ onclick attribute — bind ผ่าน addEventListener ใน JS แทน -->
+      <button id="options-confirm-btn">เพิ่มใส่ตะกร้า</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item" data-page="index.html">
+    <span class="nav-icon">🏠</span><span>หน้าหลัก</span>
+  </a>
+  <a href="menu.html" class="nav-item active" data-page="menu.html">
+    <span class="nav-icon">🍽️</span><span>เมนู</span>
+  </a>
+  <a href="cart.html" class="nav-item" data-page="cart.html">
+    <span class="nav-icon">🛒</span><span>ตะกร้า</span>
+    <span class="nav-cart-badge" id="nav-cart-badge"></span>
+  </a>
+  <a href="order-status.html" class="nav-item" data-page="order-status.html">
+    <span class="nav-icon">📋</span><span>ออเดอร์</span>
+  </a>
+</nav>
+
+<script src="js/cart.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script src="js/menu.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // ✅ bind confirm button ผ่าน addEventListener
+    document.getElementById('options-confirm-btn')
+      .addEventListener('click', function() {
+        OptionsPopup.confirm();
+      });
+
+    // ปิด popup เมื่อกด overlay
+    document.getElementById('options-overlay')
+      .addEventListener('click', function(e) {
+        if (e.target === this) OptionsPopup.close();
+      });
+  });
+</script>
+</body>
+</html>

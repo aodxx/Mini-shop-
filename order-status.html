@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#06C755">
+  <title>สถานะออเดอร์</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <a href="index.html" class="header-back">←</a>
+  <span class="header-title">สถานะออเดอร์</span>
+  <button onclick="OrderStatusPage.refresh()" style="font-size:18px; padding:4px 8px;">🔄</button>
+</header>
+
+<main class="page" style="padding-bottom:32px;">
+  <div class="page-content" id="status-content" style="padding-top:16px;">
+    <div class="text-center" style="padding:60px 0;">
+      <div class="loading-spinner" style="margin: 0 auto;"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item" data-page="index.html">
+    <span class="nav-icon">🏠</span>
+    <span>หน้าหลัก</span>
+  </a>
+  <a href="menu.html" class="nav-item" data-page="menu.html">
+    <span class="nav-icon">🍽️</span>
+    <span>เมนู</span>
+  </a>
+  <a href="cart.html" class="nav-item" data-page="cart.html">
+    <span class="nav-icon">🛒</span>
+    <span>ตะกร้า</span>
+    <span class="nav-cart-badge" id="nav-cart-badge"></span>
+  </a>
+  <a href="order-status.html" class="nav-item active" data-page="order-status.html">
+    <span class="nav-icon">📋</span>
+    <span>ออเดอร์</span>
+  </a>
+</nav>
+
+<script src="js/cart.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+const OrderStatusPage = (() => {
+
+  const STATUS_MAP = {
+    pending: { label: 'รอการยืนยัน', icon: '⏳', color: '#F59E0B', step: 0 },
+    paid:    { label: 'ชำระเงินแล้ว', icon: '✅', color: '#3B82F6', step: 1 },
+    cooking: { label: 'กำลังทำอาหาร', icon: '👨‍🍳', color: '#FF6B35', step: 2 },
+    done:    { label: 'พร้อมรับ!',     icon: '🎉', color: '#10B981', step: 3 },
+  };
+
+  const STEPS = ['รอยืนยัน', 'ชำระแล้ว', 'กำลังทำ', 'พร้อมรับ'];
+
+  function renderStatus(order) {
+    const s = STATUS_MAP[order.status] || STATUS_MAP.pending;
+    const step = s.step;
+    const fillWidth = `${(step / (STEPS.length - 1)) * 100}%`;
+
+    const items = (order.items || []).map(i =>
+      `<div class="order-item-row" style="padding:6px 0;">
+        <span style="color:var(--color-gray-700)">${i.menuName}</span>
+        <span style="color:var(--color-gray-500)">× ${i.quantity}</span>
+      </div>`
+    ).join('');
+
+    return `
+      <!-- Status Card -->
+      <div class="status-card">
+        <div class="status-icon">${s.icon}</div>
+        <div class="status-title" style="color:${s.color}">${s.label}</div>
+        <div class="status-subtitle">
+          ${order.status === 'done' ? 'อาหารพร้อมแล้ว มารับได้เลย!' : 'เราจะแจ้งเตือนเมื่ออาหารพร้อม'}
+        </div>
+        <div class="order-id-badge">ออเดอร์ #${order.orderId}</div>
+      </div>
+
+      <!-- Progress Steps -->
+      <div style="background:white; border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:var(--shadow-card);">
+        <div style="font-weight:700; font-size:14px; margin-bottom:16px; color:var(--color-gray-700);">ขั้นตอน</div>
+        <div class="progress-stepper" style="position:relative;">
+          <div class="progress-fill" style="width:${fillWidth}; left:20px; right:20px; max-width:calc(100% - 40px);"></div>
+          ${STEPS.map((label, i) => `
+            <div class="step ${i <= step ? (i < step ? 'done' : 'active') : ''}">
+              <div class="step-dot">${i < step ? '✓' : ''}</div>
+              <div class="step-label">${label}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Order Details -->
+      <div class="checkout-section">
+        <div class="checkout-section-title">รายการอาหาร</div>
+        <div>${items || '<div style="color:var(--color-gray-500);font-size:14px;">ไม่มีข้อมูลรายการ</div>'}</div>
+        <hr class="divider">
+        <div class="price-row total" style="margin-top:0; padding-top:10px;">
+          <span>ยอดรวม</span>
+          <span class="price-value">${formatPrice(order.totalPrice)}</span>
+        </div>
+      </div>
+
+      <!-- Time info -->
+      <div class="checkout-section">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:13px; color:var(--color-gray-500);">เวลาสั่ง</div>
+            <div style="font-weight:600; font-size:14px;">${formatTime(order.createdAt)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px; color:var(--color-gray-500);">สถานะการชำระ</div>
+            <div style="font-weight:600; font-size:14px; color:${order.paymentStatus === 'paid' ? 'var(--color-success)' : 'var(--color-warning)'}">
+              ${order.paymentStatus === 'paid' ? '✅ ชำระแล้ว' : '⏳ รอชำระ'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <a href="menu.html" class="btn btn-outline mt-8" style="display:flex;">
+        🍽️ สั่งเพิ่มอีก
+      </a>
+    `;
+  }
+
+  function renderEmpty() {
+    return `
+      <div class="cart-empty" style="padding-top:80px;">
+        <div class="cart-empty-icon">📋</div>
+        <div class="cart-empty-title">ยังไม่มีออเดอร์</div>
+        <div class="cart-empty-text">สั่งอาหารได้เลยที่เมนู</div>
+        <a href="menu.html" class="btn btn-primary mt-16" style="display:inline-flex; max-width:200px;">ไปเลือกเมนู</a>
+      </div>
+    `;
+  }
+
+  function renderError() {
+    return `
+      <div class="cart-empty" style="padding-top:80px;">
+        <div class="cart-empty-icon">😓</div>
+        <div class="cart-empty-title">โหลดข้อมูลไม่สำเร็จ</div>
+        <div class="cart-empty-text">กรุณาลองใหม่อีกครั้ง</div>
+        <button class="btn btn-primary mt-16" style="max-width:180px" onclick="OrderStatusPage.refresh()">
+          ลองใหม่
+        </button>
+      </div>
+    `;
+  }
+
+  async function load() {
+    const content = document.getElementById('status-content');
+    content.innerHTML = `<div class="text-center" style="padding:80px 0;"><div class="loading-spinner" style="margin:0 auto;"></div></div>`;
+
+    // Check URL params first (from payment callback)
+    const orderId = getParam('orderId');
+
+    if (orderId) {
+      try {
+        const result = await API.getOrder(orderId);
+        content.innerHTML = renderStatus(result.order);
+      } catch {
+        content.innerHTML = renderError();
+      }
+      return;
+    }
+
+    // Check LINE Pay callback
+    const transactionId = getParam('transactionId');
+    const resultOrderId = getParam('orderId') || localStorage.getItem('last_order_id');
+
+    if (transactionId && resultOrderId) {
+      try {
+        await API.updatePaymentStatus(resultOrderId, transactionId);
+        const result = await API.getOrder(resultOrderId);
+        localStorage.removeItem('last_order_id');
+        content.innerHTML = renderStatus(result.order);
+      } catch {
+        content.innerHTML = renderError();
+      }
+      return;
+    }
+
+    // Check last order
+    const lastId = localStorage.getItem('last_order_id');
+    if (lastId) {
+      try {
+        const result = await API.getOrder(lastId);
+        content.innerHTML = renderStatus(result.order);
+        // Auto-refresh if not done
+        if (result.order.status !== 'done') {
+          setTimeout(load, 30000); // refresh every 30s
+        }
+      } catch {
+        content.innerHTML = renderError();
+      }
+      return;
+    }
+
+    content.innerHTML = renderEmpty();
+  }
+
+  function refresh() { load(); }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await LiffManager.init();
+    updateCartBadges();
+    load();
+  });
+
+  return { refresh };
+})();
+</script>
+</body>
+</html>

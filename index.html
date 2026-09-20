@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a0a00">
+  <title>ร้านก๋วยเตี๋ยวแม่อ้น</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Noto+Serif+Thai:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
+  <style>
+    :root {
+      --amber:     #D4860A;
+      --amber-lt:  #F5A623;
+      --amber-dk:  #92570A;
+      --cream:     #FFF8EE;
+      --brown-dk:  #1A0A00;
+      --brown-md:  #3D1F00;
+      --brown-lt:  #7A4B1A;
+      --red-accent:#C0392B;
+      --font-serif: 'Noto Serif Thai', serif;
+      --font-body:  'Sarabun', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--cream);
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* ===== LOADING ===== */
+    .loading-screen {
+      position: fixed; inset: 0; background: var(--brown-dk);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 9999; gap: 16px;
+      transition: opacity 0.4s;
+    }
+    .loading-logo { font-size: 52px; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+    .loading-spinner {
+      width: 28px; height: 28px;
+      border: 3px solid rgba(212,134,10,0.3);
+      border-top-color: var(--amber-lt);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== HERO ===== */
+    .hero {
+      position: relative;
+      min-height: 340px;
+      background: var(--brown-dk);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 0 28px;
+    }
+
+    /* พื้นหลัง — ลวดลายชาม pattern */
+    .hero-bg {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 80%, rgba(212,134,10,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(192,57,43,0.15) 0%, transparent 60%),
+        linear-gradient(160deg, #2C1200 0%, #1A0A00 50%, #0D0500 100%);
+    }
+
+    /* ลวดลายวงกลมประดับ */
+    .hero-decor {
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+    }
+    .hero-decor::before {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 280px; height: 280px; border-radius: 50%;
+      border: 1.5px solid rgba(212,134,10,0.2);
+    }
+    .hero-decor::after {
+      content: '';
+      position: absolute; top: -30px; right: -30px;
+      width: 200px; height: 200px; border-radius: 50%;
+      border: 1px solid rgba(212,134,10,0.12);
+    }
+    .hero-circle-sm {
+      position: absolute; bottom: -80px; left: -50px;
+      width: 220px; height: 220px; border-radius: 50%;
+      border: 1.5px solid rgba(212,134,10,0.1);
+    }
+
+    /* steam animation */
+    .steam-wrap {
+      position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; align-items: flex-end;
+    }
+    .steam {
+      width: 3px; border-radius: 999px;
+      background: linear-gradient(to top, rgba(255,255,255,0.25), transparent);
+      animation: steamRise 2s ease-in-out infinite;
+    }
+    .steam:nth-child(1) { height: 28px; animation-delay: 0s; }
+    .steam:nth-child(2) { height: 38px; animation-delay: 0.4s; }
+    .steam:nth-child(3) { height: 24px; animation-delay: 0.8s; }
+    @keyframes steamRise {
+      0%   { opacity: 0; transform: translateY(0) scaleX(1); }
+      40%  { opacity: 0.7; }
+      100% { opacity: 0; transform: translateY(-28px) scaleX(1.4); }
+    }
+
+    /* bowl icon */
+    .hero-bowl {
+      position: absolute; top: 16px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 72px; line-height: 1;
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+      animation: floatBowl 4s ease-in-out infinite;
+    }
+    @keyframes floatBowl {
+      0%,100% { transform: translateX(-50%) translateY(0); }
+      50%     { transform: translateX(-50%) translateY(-8px); }
+    }
+
+    /* divider เส้นทอง */
+    .hero-divider {
+      width: 48px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--amber-lt), transparent);
+      margin: 8px auto 10px;
+    }
+
+    .hero-content {
+      position: relative; z-index: 2;
+      text-align: center; padding: 0 20px;
+    }
+
+    .hero-greeting {
+      font-size: 13px; color: rgba(255,255,255,0.5);
+      letter-spacing: 0.08em; margin-bottom: 6px;
+    }
+    .hero-greeting span { color: var(--amber-lt); font-weight: 600; }
+
+    .hero-name {
+      font-family: var(--font-serif);
+      font-size: 26px; font-weight: 700;
+      color: #FFFBF0;
+      line-height: 1.25;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+      letter-spacing: 0.01em;
+    }
+    .hero-name em {
+      font-style: normal;
+      color: var(--amber-lt);
+    }
+
+    .hero-sub {
+      font-size: 12px; color: rgba(255,255,255,0.4);
+      letter-spacing: 0.12em; margin-top: 6px;
+    }
+
+    /* ===== PROFILE CARD ===== */
+    .profile-float {
+      position: relative; z-index: 10;
+      margin: -20px 16px 0;
+      background: white;
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      animation: slideUp 0.5s ease-out 0.2s both;
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform: translateY(16px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .profile-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+      border: 2.5px solid var(--amber-lt);
+      background: var(--cream);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; overflow: hidden;
+    }
+    .profile-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+
+    .profile-info { flex: 1; min-width: 0; }
+    .profile-label { font-size: 11px; color: #999; letter-spacing: 0.06em; }
+    .profile-name {
+      font-size: 15px; font-weight: 700;
+      color: var(--brown-dk);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .profile-badge {
+      background: linear-gradient(135deg, var(--amber), var(--amber-dk));
+      color: white; font-size: 10px; font-weight: 700;
+      padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    /* ===== PAGE CONTENT ===== */
+    .page-wrap {
+      padding: 16px 16px 0;
+      animation: fadeIn 0.4s ease-out 0.3s both;
+    }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+    /* ===== PROMO BANNER ===== */
+    .promo-banner {
+      background: linear-gradient(135deg, #C0392B 0%, #922B21 100%);
+      border-radius: 16px; padding: 16px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px; position: relative; overflow: hidden;
+    }
+    .promo-banner::before {
+      content: '';
+      position: absolute; right: -20px; top: -20px;
+      width: 100px; height: 100px; border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+    }
+    .promo-banner::after {
+      content: '';
+      position: absolute; right: 20px; bottom: -30px;
+      width: 70px; height: 70px; border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+    .promo-text { position: relative; z-index: 1; }
+    .promo-title { font-weight: 700; font-size: 15px; color: white; margin-bottom: 3px; }
+    .promo-sub   { font-size: 12px; color: rgba(255,255,255,0.75); }
+    .promo-btn {
+      position: relative; z-index: 1;
+      background: rgba(255,255,255,0.18);
+      border: 1.5px solid rgba(255,255,255,0.4);
+      color: white; font-family: var(--font-body);
+      font-size: 12px; font-weight: 700;
+      padding: 8px 16px; border-radius: 999px;
+      cursor: pointer; white-space: nowrap;
+      backdrop-filter: blur(4px);
+      transition: background 0.2s;
+    }
+    .promo-btn:active { background: rgba(255,255,255,0.28); }
+
+    /* ===== SECTION TITLE ===== */
+    .sec-title {
+      font-family: var(--font-serif);
+      font-size: 16px; font-weight: 700;
+      color: var(--brown-dk);
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sec-title::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: linear-gradient(90deg, rgba(212,134,10,0.3), transparent);
+    }
+
+    /* ===== QUICK MENU GRID ===== */
+    .quick-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; margin-bottom: 18px;
+    }
+    .quick-card {
+      background: white; border-radius: 16px; padding: 20px 16px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      text-decoration: none;
+      border: 1.5px solid transparent;
+      transition: all 0.2s;
+      position: relative; overflow: hidden;
+    }
+    .quick-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(212,134,10,0.05), transparent);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .quick-card:active { transform: scale(0.97); border-color: rgba(212,134,10,0.3); }
+    .quick-card:active::before { opacity: 1; }
+
+    .quick-icon { font-size: 38px; }
+    .quick-label {
+      font-weight: 700; font-size: 14px;
+      color: var(--brown-dk); text-align: center;
+    }
+    .quick-desc { font-size: 11px; color: #999; text-align: center; }
+    .quick-arrow {
+      position: absolute; top: 10px; right: 12px;
+      font-size: 12px; color: var(--amber);
+    }
+
+    /* ===== INFO CARD ===== */
+    .info-card {
+      background: white; border-radius: 16px; padding: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      margin-bottom: 16px;
+    }
+    .info-row {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(212,134,10,0.08);
+    }
+    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--amber), var(--amber-dk));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .info-text-label { font-size: 11px; color: #999; margin-bottom: 1px; }
+    .info-text-value { font-size: 13px; font-weight: 600; color: var(--brown-dk); }
+
+    /* ===== STATUS BADGE ===== */
+    .status-open {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #E8F9EE; color: #048A3A;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 999px;
+    }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #06C755;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ===== BOTTOM NAV ===== */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      background: white;
+      border-top: 1px solid rgba(212,134,10,0.12);
+      height: calc(64px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      display: flex; z-index: 100;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+      color: #AAA; font-size: 11px; font-weight: 600;
+      text-decoration: none; transition: color 0.15s;
+      position: relative;
+    }
+    .nav-item.active { color: var(--amber); }
+    .nav-item.active .nav-icon { transform: scale(1.1); }
+    .nav-icon { font-size: 22px; transition: transform 0.15s; }
+    .nav-cart-badge {
+      position: absolute; top: 6px; right: calc(50% - 18px);
+      background: var(--red-accent); color: white;
+      min-width: 16px; height: 16px; border-radius: 999px;
+      font-size: 10px; font-weight: 800;
+      display: none; align-items: center; justify-content: center; padding: 0 4px;
+    }
+    .nav-cart-badge.show { display: flex; }
+
+    /* scroll hide */
+    ::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loading-screen">
+  <div class="loading-logo">🍜</div>
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-decor">
+    <div class="hero-circle-sm"></div>
+  </div>
+
+  <!-- ไอคอนชามและไอน้ำ -->
+  <div class="steam-wrap">
+    <div class="steam"></div>
+    <div class="steam"></div>
+    <div class="steam"></div>
+  </div>
+  <div class="hero-bowl">🍜</div>
+
+  <!-- ข้อความ -->
+  <div class="hero-content">
+    <div class="hero-greeting">ยินดีต้อนรับ, <span id="user-name">คุณลูกค้า</span> 👋</div>
+    <div class="hero-divider"></div>
+    <h1 class="hero-name">ร้านก๋วยเตี๋ยว<em>แม่อ้น</em><br>&amp; ตามสั่ง</h1>
+    <div class="hero-sub">สั่งอาหารง่ายๆ ผ่านแอปพลิเคชัน</div>
+  </div>
+</div>
+
+<!-- ===== PROFILE CARD ===== -->
+<div class="profile-float" id="profile-card">
+  <div class="profile-avatar" id="profile-avatar">👤</div>
+  <div class="profile-info">
+    <div class="profile-label">สมาชิก LINE</div>
+    <div class="profile-name" id="profile-name">กำลังโหลด...</div>
+  </div>
+  <div class="profile-badge">🎫 สมาชิก</div>
+</div>
+
+<!-- ===== PAGE CONTENT ===== -->
+<div class="page-wrap">
+
+  <!-- Promo -->
+  <div class="promo-banner" style="margin-top:18px;">
+    <div class="promo-text">
+      <div class="promo-title">🎉 เมนูใหม่วันนี้!</div>
+      <div class="promo-sub">ดูเมนูพิเศษประจำวัน</div>
+    </div>
+    <button class="promo-btn" onclick="window.location.href='menu.html'">ดูเมนู →</button>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="sec-title">เริ่มสั่งได้เลย</div>
+  <div class="quick-grid">
+    <a href="menu.html" class="quick-card">
+      <span class="quick-arrow">›</span>
+      <span class="quick-icon">🍽️</span>
+      <span class="quick-label">เมนูอาหาร</span>
+      <span class="quick-desc">เลือกเมนูที่ชอบ</span>
+    </a>
+    <a href="order-status.html" class="quick-card">
+      <span class="quick-arrow">›</span>
+      <span class="quick-icon">📋</span>
+      <span class="quick-label">ติดตามออเดอร์</span>
+      <span class="quick-desc">เช็กสถานะอาหาร</span>
+    </a>
+  </div>
+
+  <!-- Info Card -->
+  <div class="sec-title">ข้อมูลร้าน</div>
+  <div class="info-card">
+    <div class="info-row">
+      <div class="info-icon">🕐</div>
+      <div>
+        <div class="info-text-label">เวลาทำการ</div>
+        <div class="info-text-value">จันทร์–อาทิตย์  10:00 – 16:00 น.</div>
+        <div style="margin-top:5px;">
+          <span class="status-open">
+            <span class="status-dot"></span>เปิดอยู่ตอนนี้
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="info-row">
+      <div class="info-icon">📍</div>
+      <div>
+        <div class="info-text-label">ที่อยู่</div>
+        <div class="info-text-value">สามแยกต้นโพธิ์ใหญ่ หมู่ที่9 ต.โคกชะงาย</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <div class="info-icon">💳</div>
+      <div>
+        <div class="info-text-label">ชำระเงิน</div>
+        <div class="info-text-value">LINE Pay &amp; เงินสด</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <div class="info-icon">📞</div>
+      <div>
+        <div class="info-text-label">ติดต่อ</div>
+        <div class="info-text-value">0653877411,0948783040</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item active" data-page="index.html">
+    <span class="nav-icon">🏠</span><span>หน้าหลัก</span>
+  </a>
+  <a href="menu.html" class="nav-item" data-page="menu.html">
+    <span class="nav-icon">🍽️</span><span>เมนู</span>
+  </a>
+  <a href="cart.html" class="nav-item" data-page="cart.html">
+    <span class="nav-icon">🛒</span><span>ตะกร้า</span>
+    <span class="nav-cart-badge" id="nav-cart-badge"></span>
+  </a>
+  <a href="order-status.html" class="nav-item" data-page="order-status.html">
+    <span class="nav-icon">📋</span><span>ออเดอร์</span>
+  </a>
+</nav>
+
+<script src="js/cart.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await LiffManager.init();
+    const profile = LiffManager.getProfile();
+    const name    = LiffManager.getDisplayName();
+
+    // ชื่อใน hero
+    const heroName = document.getElementById('user-name');
+    if (heroName && name) heroName.textContent = name;
+
+    // profile card
+    const profileName = document.getElementById('profile-name');
+    if (profileName) profileName.textContent = name || 'Guest';
+
+    // รูปโปรไฟล์
+    if (profile && profile.pictureUrl) {
+      const avatar = document.getElementById('profile-avatar');
+      if (avatar) avatar.innerHTML =
+        `<img src="${profile.pictureUrl}" alt="${name}">`;
+    }
+  } catch(e) {
+    const pn = document.getElementById('profile-name');
+    if (pn) pn.textContent = 'Guest';
+  }
+
+  // เช็กเวลาเปิด/ปิด (10:00-16:00)
+  const now = new Date();
+  const h   = now.getHours();
+  const statusEl = document.querySelector('.status-open');
+  if (statusEl && (h < 10 || h >= 16)) {
+    statusEl.style.background = '#FEE2E2';
+    statusEl.style.color      = '#C0392B';
+    statusEl.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#C0392B;display:inline-block;"></span>ปิดอยู่ตอนนี้';
+  }
+
+  showLoading(false);
+  updateCartBadges();
+});
+</script>
+</body>
+</html>
