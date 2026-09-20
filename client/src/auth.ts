@@ -4,7 +4,7 @@ export type AuthUser = {
   lineUserId: string;
   displayName: string;
   pictureUrl?: string;
-  role: 'customer';
+  role: 'customer' | 'staff' | 'manager' | 'owner';
 };
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';

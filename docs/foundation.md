@@ -56,6 +56,8 @@ pnpm --filter @mini-shop/server db:migrate
 
 Phase 3 เชื่อม `UserRepository` เข้ากับตาราง `users` ด้วย Drizzle โดยการ login ผ่าน LINE จะ upsert `line_user_id`, ชื่อ และรูปโปรไฟล์ที่ได้จาก token ที่ LINE ตรวจสอบแล้วก่อนสร้าง session
 
+Phase 4 เพิ่ม `ProductRepository` สำหรับตาราง `menus` และ product management API ได้แก่ `GET /api/products`, `POST /api/products`, `PATCH /api/products/:id` และ `DELETE /api/products/:id` การอ่านสินค้าที่ active เปิดให้ผู้ใช้ทั่วไป ส่วนการสร้าง แก้ไข ปิดขาย และดูสินค้าที่ inactive ต้องเป็น role `staff`, `manager` หรือ `owner` การลบสินค้าเป็น soft delete โดยเปลี่ยน `is_active` เป็น `false` และมี indexes สำหรับ active/sort order กับ category
+
 ## สิ่งที่มีใน Foundation
 
 Backend มี health endpoint, tRPC router เริ่มต้น, environment validation, LINE ID token verification และ PostgreSQL schema เบื้องต้นสำหรับ users, menus และ orders ส่วน frontend มี React application shell ที่เรียก health endpoint และแสดงสถานะการเชื่อมต่อ API รวมถึงปุ่ม login ด้วย LINE

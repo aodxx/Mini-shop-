@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -41,7 +42,10 @@ export const menus = pgTable('menus', {
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  activeSortOrderIdx: index('menus_active_sort_order_idx').on(table.isActive, table.sortOrder),
+  categoryIdx: index('menus_category_idx').on(table.category),
+}));
 
 export const orders = pgTable('orders', {
   id: uuid('id').defaultRandom().primaryKey(),

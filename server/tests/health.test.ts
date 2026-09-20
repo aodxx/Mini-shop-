@@ -25,6 +25,12 @@ describe('GET /health', () => {
         upsertFromLine: async () => ({ lineUserId: 'test', displayName: 'Test', role: 'customer' as const }),
         findByLineUserId: async () => null,
       },
+      productRepository: {
+        list: async () => [],
+        create: async (input) => ({ id: 'test', ...input, isActive: input.isActive ?? true, sortOrder: input.sortOrder ?? 0 }),
+        update: async () => null,
+        deactivate: async () => false,
+      },
     });
     apps.add(app);
 
