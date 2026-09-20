@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { menus, orderItems, orders } from '../db/schema.js';
 import type { Order } from './service.js';
@@ -21,6 +21,7 @@ export type NewOrderInput = {
 };
 
 export type PaymentOrder = Order & { userId: string };
+export type AdminOrderFilter = { status?: Order['status']; search?: string };
 
 export interface OrderRepository {
   create(input: NewOrderInput): Promise<Order>;
@@ -30,6 +31,8 @@ export interface OrderRepository {
   getByTransaction(transactionId: string): Promise<PaymentOrder | null>;
   setPaymentPending(orderId: string, provider: string, transactionId: string, paymentUrl: string): Promise<PaymentOrder>;
   markPaid(transactionId: string): Promise<PaymentOrder | null>;
+  listAll(filter?: AdminOrderFilter): Promise<Order[]>;
+  updateStatus(orderId: string, status: Order['status']): Promise<Order | null>;
 }
 
 function toOrder(order: typeof orders.$inferSelect, items: NewOrderItem[]): Order {
@@ -131,6 +134,36 @@ export function createOrderRepository(db: Database): OrderRepository {
         return existing?.paymentStatus === 'paid' ? existing : null;
       }
       return toPaymentOrder(order, await getItems(db, order.id));
+    },
+
+    async listAll(filter = {}) {
+      const conditions = [];
+      if (filter.status) conditions.push(eq(orders.status, filter.status));
+      if (filter.search) conditions.push(ilike(orders.orderNumber, `%${filter.search}%`));
+      const rows = await db.select().from(orders)
+        .where(conditions.length ? and(...conditions) : undefined)
+        .orderBy(asc(orders.createdAt));
+      return Promise.all(rows.map(async (row) => toOrder(row, await getItems(db, row.id))));
+    },
+
+    async updateStatus(orderId, status) {
+      return db.transaction(async (tx) => {
+        const [existing] = await tx.select().from(orders).where(eq(orders.id, orderId));
+        if (!existing) return null;
+        if (existing.status === 'pending' && status === 'cancelled') {
+          const items = await tx.select({ productId: orderItems.productId, quantity: orderItems.quantity })
+            .from(orderItems).where(eq(orderItems.orderId, orderId));
+          for (const item of items) {
+            await tx.update(menus)
+              .set({ reservedQuantity: sql`greatest(${menus.reservedQuantity} - ${item.quantity}, 0)`, updatedAt: new Date() })
+              .where(eq(menus.id, item.productId));
+          }
+        }
+        const [updated] = await tx.update(orders)
+          .set({ status, updatedAt: new Date() })
+          .where(eq(orders.id, orderId)).returning();
+        return updated ? toOrder(updated, await getItems(db, updated.id)) : null;
+      });
     },
   };
 }

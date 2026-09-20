@@ -66,6 +66,8 @@ Phase 6 เพิ่ม stock reservation และ payment lifecycle โดย�
 
 อ้างอิง: [LINE Pay Payment Request](https://developers-pay.line.me/online-api-v3/request-payment), [LINE Pay Payment Confirmation](https://developers-pay.line.me/online-api-v3/confirm-payment) และ [LINE MINI App payment availability](https://developers.line.biz/en/docs/line-mini-app/develop/payment/)
 
+Phase 7 เพิ่ม Admin Dashboard สำหรับ role `staff`, `manager` และ `owner` โดยมี `GET /api/admin/orders` สำหรับดูและค้นหาออเดอร์ `PATCH /api/admin/orders/:id/status` สำหรับเปลี่ยนสถานะ และ `POST /api/admin/products/:id/stock` สำหรับเพิ่มหรือลด stock ระบบตรวจสิทธิ์จาก signed session ก่อนทุก route และปรับ stock แบบ atomic โดยไม่อนุญาตให้ stock ต่ำกว่า `reserved_quantity` การยกเลิกออเดอร์ที่ `pending` ผ่าน dashboard จะคืน stock reservation ให้ด้วย
+
 ## สิ่งที่มีใน Foundation
 
 Backend มี health endpoint, tRPC router เริ่มต้น, environment validation, LINE ID token verification และ PostgreSQL schema เบื้องต้นสำหรับ users, menus และ orders ส่วน frontend มี React application shell ที่เรียก health endpoint และแสดงสถานะการเชื่อมต่อ API รวมถึงปุ่ม login ด้วย LINE

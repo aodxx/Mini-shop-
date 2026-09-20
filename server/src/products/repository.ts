@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { menus, type Menu } from '../db/schema.js';
 
@@ -41,6 +41,7 @@ export interface ProductRepository {
   create(input: CreateProductInput): Promise<Product>;
   update(id: string, input: UpdateProductInput): Promise<Product | null>;
   deactivate(id: string): Promise<boolean>;
+  adjustStock(id: string, delta: number): Promise<Product | null>;
 }
 
 function toProduct(menu: Menu): Product {
@@ -120,6 +121,17 @@ export function createProductRepository(db: Database): ProductRepository {
         .returning({ id: menus.id });
 
       return Boolean(menu);
+    },
+
+    async adjustStock(id, delta) {
+      const [menu] = await db.update(menus)
+        .set({ stockQuantity: sql`${menus.stockQuantity} + ${delta}`, updatedAt: new Date() })
+        .where(and(
+          eq(menus.id, id),
+          sql`${menus.stockQuantity} + ${delta} >= ${menus.reservedQuantity}`,
+        ))
+        .returning();
+      return menu ? toProduct(menu) : null;
     },
   };
 }

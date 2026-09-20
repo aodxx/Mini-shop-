@@ -155,6 +155,11 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     }
   }
 
+  const orderStatuses = z.enum(['pending', 'paid', 'cooking', 'ready', 'completed', 'cancelled']);
+  async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
+    return requireProductManager(request, reply);
+  }
+
   app.get<{ Querystring: { category?: string; includeInactive?: string } }>('/api/products', async (request, reply) => {
     if (!productRepository) return reply.code(503).send({ error: 'Product repository is unavailable' });
     const includeInactive = request.query.includeInactive === 'true';
@@ -204,6 +209,35 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     const deactivated = await productRepository.deactivate(request.params.id);
     if (!deactivated) return reply.code(404).send({ error: 'Product not found' });
     return reply.code(204).send();
+  });
+
+  app.get<{ Querystring: { status?: string; search?: string } }>('/api/admin/orders', async (request, reply) => {
+    if (!orderRepository || !(await requireAdmin(request, reply))) return reply;
+    const parsed = z.object({ status: orderStatuses.optional(), search: z.string().trim().max(80).optional() }).safeParse(request.query);
+    if (!parsed.success) return reply.code(400).send({ error: 'Invalid admin order filter' });
+    const orders = await orderRepository.listAll({
+      ...(parsed.data.status ? { status: parsed.data.status } : {}),
+      ...(parsed.data.search ? { search: parsed.data.search } : {}),
+    });
+    return reply.send({ orders });
+  });
+
+  app.patch<{ Params: { id: string }; Body: { status?: string } }>('/api/admin/orders/:id/status', async (request, reply) => {
+    if (!orderRepository || !(await requireAdmin(request, reply))) return reply;
+    const parsed = z.object({ status: orderStatuses }).safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'Invalid order status' });
+    const order = await orderRepository.updateStatus(request.params.id, parsed.data.status);
+    if (!order) return reply.code(404).send({ error: 'Order not found' });
+    return reply.send({ order });
+  });
+
+  app.post<{ Params: { id: string }; Body: { delta?: number } }>('/api/admin/products/:id/stock', async (request, reply) => {
+    if (!productRepository || !(await requireAdmin(request, reply))) return reply;
+    const parsed = z.object({ delta: z.number().int().min(-100000).max(100000).refine((value) => value !== 0) }).safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'Stock delta must be a non-zero integer' });
+    const product = await productRepository.adjustStock(request.params.id, parsed.data.delta);
+    if (!product) return reply.code(409).send({ error: 'Product not found or stock cannot be below reserved quantity' });
+    return reply.send({ product });
   });
 
   const orderCreateSchema = z.object({

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { adjustProductStock, listAdminOrders, updateAdminOrderStatus } from './admin';
 import { getCurrentUser, loginWithLine, logoutFromLine, type AuthUser } from './auth';
 import { addProductToCart, clearCart, loadCart, updateCartQuantity, type CartItem } from './cart';
 import { cancelOrder, createOrder, listOrders, startPayment, type Order } from './orders';
@@ -30,6 +31,12 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [checkoutState, setCheckoutState] = useState<'idle' | 'submitting'>('idle');
+  const [adminOrders, setAdminOrders] = useState<Order[]>([]);
+  const [adminOrderStatus, setAdminOrderStatus] = useState('all');
+  const [adminSearch, setAdminSearch] = useState('');
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
+  const canManageProducts = Boolean(user && productManagers.has(user.role));
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
@@ -82,6 +89,16 @@ export default function App() {
     }
     void listOrders().then(setOrders).catch(() => setOrderError('โหลดประวัติออเดอร์ไม่สำเร็จ'));
   }, [authState]);
+
+  useEffect(() => {
+    if (!canManageProducts) {
+      setAdminOrders([]);
+      return;
+    }
+    void listAdminOrders(adminOrderStatus === 'all' ? undefined : adminOrderStatus, adminSearch)
+      .then(setAdminOrders)
+      .catch((error) => setAdminError(error instanceof Error ? error.message : 'โหลดข้อมูลหลังร้านไม่สำเร็จ'));
+  }, [adminOrderStatus, adminSearch, canManageProducts]);
 
   async function handleLogin() {
     setAuthState('signing-in');
@@ -181,14 +198,38 @@ export default function App() {
     }
   }
 
-  const canManageProducts = Boolean(user && productManagers.has(user.role));
+  async function handleAdminStatus(orderId: string, status: string) {
+    try {
+      const updated = await updateAdminOrderStatus(orderId, status);
+      setAdminOrders((current) => current.map((order) => order.id === updated.id ? updated : order));
+      setOrders((current) => current.map((order) => order.id === updated.id ? updated : order));
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : 'เปลี่ยนสถานะออเดอร์ไม่สำเร็จ');
+    }
+  }
+
+  async function handleStockAdjustment(product: Product) {
+    const delta = Number(stockDrafts[product.id] ?? '');
+    if (!Number.isInteger(delta) || delta === 0) {
+      setAdminError('กรุณาระบุจำนวน stock เป็นจำนวนเต็มที่ไม่ใช่ศูนย์');
+      return;
+    }
+    try {
+      const updated = await adjustProductStock(product.id, delta);
+      setProducts((current) => current.map((item) => item.id === updated.id ? updated : item));
+      setStockDrafts((current) => ({ ...current, [product.id]: '' }));
+      setAdminError(null);
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : 'ปรับ stock ไม่สำเร็จ');
+    }
+  }
 
   return (
     <main className="shell">
       <section className="app-card" aria-labelledby="app-title">
         <header className="app-header">
           <div>
-            <p className="eyebrow">PHASE 4 · PRODUCT MANAGEMENT</p>
+            <p className="eyebrow">MINI SHOP · ADMIN & ORDER OPERATIONS</p>
             <h1 id="app-title">Mini Shop</h1>
             <p className="lead">เมนูอาหารและสินค้าสำหรับร้านของคุณ</p>
           </div>
@@ -244,6 +285,29 @@ export default function App() {
           <section className="orders-section" aria-labelledby="orders-title">
             <div className="section-heading"><div><p className="eyebrow">ORDER HISTORY</p><h2 id="orders-title">ออเดอร์ของฉัน</h2></div></div>
             <div className="order-list">{orders.map((order) => <article className="order-row" key={order.id}><div><strong>{order.orderNumber}</strong><p className="muted">{order.items.map((item) => `${item.productName} × ${item.quantity}`).join(' · ')}</p></div><div className="order-summary"><span className={`order-status order-${order.status}`}>{order.status}</span><strong>{formatPrice(order.totalSatang)}</strong>{order.paymentStatus !== 'paid' && order.status !== 'cancelled' && <button className="text-button" type="button" onClick={() => handleStartPayment(order.id)}>ชำระเงิน</button>}{order.status === 'pending' && <button className="text-button" type="button" onClick={() => handleCancelOrder(order.id)}>ยกเลิก</button>}</div></article>)}</div>
+          </section>
+        )}
+
+        {canManageProducts && (
+          <section className="admin-dashboard" aria-labelledby="admin-dashboard-title">
+            <div className="section-heading"><div><p className="eyebrow">ADMIN DASHBOARD</p><h2 id="admin-dashboard-title">จัดการออเดอร์และสต็อก</h2></div><button className="text-button" type="button" onClick={() => void listAdminOrders(adminOrderStatus === 'all' ? undefined : adminOrderStatus, adminSearch).then(setAdminOrders)}>รีเฟรช</button></div>
+            {adminError && <p className="auth-error">{adminError}</p>}
+            <div className="admin-filters">
+              <input aria-label="ค้นหาออเดอร์" placeholder="ค้นหาเลขออเดอร์" value={adminSearch} onChange={(event) => setAdminSearch(event.target.value)} />
+              <select aria-label="กรองสถานะออเดอร์" value={adminOrderStatus} onChange={(event) => setAdminOrderStatus(event.target.value)}><option value="all">ทุกสถานะ</option><option value="pending">รอชำระเงิน</option><option value="paid">ชำระแล้ว</option><option value="cooking">กำลังทำ</option><option value="ready">พร้อมรับ</option><option value="completed">เสร็จสิ้น</option><option value="cancelled">ยกเลิก</option></select>
+            </div>
+            <div className="admin-orders">
+              {adminOrders.length === 0 ? <p className="muted">ไม่พบออเดอร์</p> : adminOrders.map((order) => (
+                <article className="admin-order-row" key={order.id}>
+                  <div><strong>{order.orderNumber}</strong><p className="muted">{order.items.map((item) => `${item.productName} × ${item.quantity}`).join(' · ')}</p><span className="muted">ยอด {formatPrice(order.totalSatang)} · payment: {order.paymentStatus}</span></div>
+                  <select aria-label={`สถานะ ${order.orderNumber}`} value={order.status} onChange={(event) => void handleAdminStatus(order.id, event.target.value)}><option value="pending">pending</option><option value="paid">paid</option><option value="cooking">cooking</option><option value="ready">ready</option><option value="completed">completed</option><option value="cancelled">cancelled</option></select>
+                </article>
+              ))}
+            </div>
+            <h3 className="admin-subtitle">สต็อกสินค้า</h3>
+            <div className="stock-admin-list">{products.map((product) => (
+              <div className="stock-admin-row" key={product.id}><div><strong>{product.name}</strong><span className="muted">คงเหลือ {product.stockQuantity} · จองแล้ว {product.reservedQuantity} · ขายได้ {Math.max(0, product.stockQuantity - product.reservedQuantity)}</span></div><div className="stock-controls"><input aria-label={`จำนวน stock ${product.name}`} type="number" step="1" placeholder="+/-" value={stockDrafts[product.id] ?? ''} onChange={(event) => setStockDrafts((current) => ({ ...current, [product.id]: event.target.value }))} /><button className="text-button" type="button" onClick={() => void handleStockAdjustment(product)}>ปรับ</button></div></div>
+            ))}</div>
           </section>
         )}
 

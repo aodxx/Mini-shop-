@@ -609,7 +609,51 @@ POST /api/orders/:id/payment
 
 ทุก endpoint ต้องตอบ `401`
 
-## 16. ตรวจสอบ automated tests
+## 16. ใช้งาน Admin Dashboard
+
+หลังจาก login ด้วยบัญชีที่มี role `staff`, `manager` หรือ `owner` ระบบจะแสดงส่วน `ADMIN DASHBOARD` ใต้รายการออเดอร์ของลูกค้า หน้านี้เป็นพื้นที่หลังร้านและจะไม่แสดงให้ role `customer`
+
+### ดูและค้นหาออเดอร์
+
+1. ใช้ช่องค้นหาเพื่อค้นหาจากเลขออเดอร์ เช่น `MS-20260920`
+2. ใช้ตัวกรองสถานะเพื่อดูเฉพาะ `pending`, `paid`, `cooking`, `ready`, `completed` หรือ `cancelled`
+3. ตรวจชื่อสินค้า จำนวน และยอดรวมในแต่ละรายการ
+4. ใช้ dropdown ด้านขวาของออเดอร์เพื่อเปลี่ยนสถานะ
+5. กด `รีเฟรช` เมื่อต้องการโหลดข้อมูลจาก backend ใหม่
+
+การเปลี่ยนสถานะผ่าน dashboard เรียก API:
+
+```http
+PATCH /api/admin/orders/:id/status
+```
+
+### ปรับ stock
+
+1. ดูจำนวน `คงเหลือ`, `จองแล้ว` และ `ขายได้`
+2. ใส่จำนวนเต็มในช่อง stock โดยใช้ค่าบวกเพื่อเพิ่มและค่าลบเพื่อลด เช่น `10` หรือ `-2`
+3. กด `ปรับ`
+4. ตรวจจำนวน stock ที่อัปเดตแล้ว
+
+ระบบจะไม่ยอมให้ลด stock จนต่ำกว่า `reserved_quantity` เพื่อไม่ให้กระทบ order ที่ลูกค้าจองไว้แล้ว ถ้าต้องการลด stock ให้ต่ำกว่าจำนวนที่จอง ต้องจัดการ order ที่เกี่ยวข้องก่อน
+
+API ที่ใช้คือ:
+
+```http
+POST /api/admin/products/:id/stock
+```
+
+### สิทธิ์ของแต่ละ role
+
+| Role | ดู dashboard | เปลี่ยน order status | ปรับ stock |
+| --- | --- | --- | --- |
+| `customer` | ไม่ได้ | ไม่ได้ | ไม่ได้ |
+| `staff` | ได้ | ได้ | ได้ |
+| `manager` | ได้ | ได้ | ได้ |
+| `owner` | ได้ | ได้ | ได้ |
+
+ถ้า user เป็น `customer` ให้เปลี่ยน role ใน PostgreSQL เฉพาะบัญชีผู้ดูแลที่คุณยืนยันตัวตนแล้วเท่านั้น
+
+## 17. ตรวจสอบ automated tests
 
 ก่อน push code ให้รัน:
 
@@ -629,7 +673,7 @@ Production build passed
 No whitespace errors
 ```
 
-## 17. ตรวจปัญหาที่พบบ่อย
+## 18. ตรวจปัญหาที่พบบ่อย
 
 ### ได้ `Payment gateway is not configured`
 
@@ -702,7 +746,7 @@ FROM menus;
 - ไม่มี whitespace ใน secret
 - server restart แล้วหลังแก้ `.env`
 
-## 18. งานที่ต้องทำก่อน production
+## 19. งานที่ต้องทำก่อน production
 
 อย่าเปลี่ยน `LINE_PAY_ENV=production` ทันที ให้ทำรายการต่อไปนี้ก่อน
 
@@ -725,7 +769,7 @@ FROM menus;
 17. ตั้ง staff/owner role อย่างน้อยหนึ่งบัญชี
 18. ทดสอบ order มูลค่าต่ำมากใน production ตามขั้นตอนอนุมัติของ merchant
 
-## 19. งานที่ยังต้องทำต่อในระบบ
+## 20. งานที่ยังต้องทำต่อในระบบ
 
 Phase 6 รองรับ payment request, confirm และ stock reservation แล้ว แต่ก่อน production ควรเพิ่มงานเหล่านี้
 
@@ -739,7 +783,7 @@ Phase 6 รองรับ payment request, confirm และ stock reservation 
 - rate limiting สำหรับ payment endpoints
 - การตรวจสอบ webhook หรือ callback replay ตามข้อกำหนด merchant
 
-## 20. วิธี push การเปลี่ยนแปลงขึ้น GitHub
+## 21. วิธี push การเปลี่ยนแปลงขึ้น GitHub
 
 ตรวจ branch และ working tree
 
@@ -787,7 +831,7 @@ git push -u origin chore/configure-sandbox
 
 จากนั้นเปิด Pull Request ไปยัง branch ที่ทีมกำหนด โดยไม่ merge เข้า `main` เองหากยังไม่ได้รับอนุมัติ
 
-## 21. Checklist สรุปก่อนบอกว่าใช้งานได้
+## 22. Checklist สรุปก่อนบอกว่าใช้งานได้
 
 - [ ] `pnpm install` ผ่าน
 - [ ] PostgreSQL เชื่อมต่อได้

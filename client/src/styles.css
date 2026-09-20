@@ -90,6 +90,18 @@ h3 { margin: 3px 0 6px; font-size: 1.18rem; }
 .order-cancelled { color: #8a241d; background: #fde9e6; }
 .order-paid, .order-cooking, .order-ready, .order-completed { color: #0b6530; background: #e4f7eb; }
 .order-error { margin-top: 18px; }
+.admin-dashboard { margin-top: 34px; padding: 22px; border: 1px solid rgba(6, 199, 85, 0.22); border-radius: 18px; background: #f1fff6; }
+.admin-filters { display: grid; grid-template-columns: 1fr 180px; gap: 10px; margin-bottom: 14px; }
+.admin-filters input, .admin-filters select, .admin-order-row select, .stock-controls input { min-width: 0; padding: 10px 11px; border: 1px solid rgba(146, 87, 10, 0.2); border-radius: 10px; color: #2c1707; background: #fff; font: inherit; }
+.admin-orders, .stock-admin-list { display: grid; gap: 8px; }
+.admin-order-row, .stock-admin-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 0; border-bottom: 1px solid rgba(6, 126, 57, 0.14); }
+.admin-order-row:last-child, .stock-admin-row:last-child { border-bottom: 0; }
+.admin-order-row p { margin-bottom: 4px; }
+.admin-order-row select { width: 130px; }
+.admin-subtitle { margin: 22px 0 6px; color: #087b39; }
+.stock-admin-row > div:first-child { display: grid; gap: 4px; }
+.stock-controls { display: flex; align-items: center; gap: 8px; }
+.stock-controls input { width: 82px; }
 
 @media (prefers-reduced-motion: reduce) {
   .line-button { transition: none; }
@@ -103,4 +115,8 @@ h3 { margin: 3px 0 6px; font-size: 1.18rem; }
   .product-form .line-button { grid-column: 1 / -1; width: 100%; }
   .cart-row, .order-row { grid-template-columns: 1fr auto; }
   .cart-row > strong, .order-summary { grid-column: 2; }
+  .admin-filters { grid-template-columns: 1fr; }
+  .admin-order-row, .stock-admin-row { align-items: flex-start; flex-direction: column; }
+  .admin-order-row select, .stock-controls { width: 100%; }
+  .admin-order-row select { width: 100%; }
 }
