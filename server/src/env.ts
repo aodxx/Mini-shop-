@@ -6,6 +6,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url().or(z.string().startsWith('postgresql://')),
   SESSION_SECRET: z.string().min(32),
   CLIENT_ORIGIN: z.string().url(),
+  LINE_CHANNEL_ID: z.string().min(1),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

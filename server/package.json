@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",
+    "@fastify/cookie": "^10.0.1",
     "@trpc/server": "^11.0.0",
     "drizzle-orm": "^0.36.4",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
+    "jose": "^5.10.0",
     "pg": "^8.13.1",
     "postgres": "^3.4.5",
     "zod": "^3.24.1"

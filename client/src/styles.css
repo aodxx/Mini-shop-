@@ -37,3 +37,19 @@ h1 { margin: 0; font-size: clamp(2.5rem, 11vw, 4.5rem); line-height: 0.98; lette
 .status-error { color: #8a241d; background: #fde9e6; }
 .status-pending { color: #81540b; background: #fff1cc; }
 .status-dot { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%; background: currentColor; }
+
+.auth-panel { margin-top: 20px; }
+.line-button { width: 100%; padding: 13px 18px; border: 0; border-radius: 14px; color: #fff; background: #06c755; font: inherit; font-weight: 800; cursor: pointer; transition: transform 160ms ease-out, filter 160ms ease-out; }
+.line-button:hover { filter: brightness(0.95); }
+.line-button:active { transform: scale(0.97); }
+.muted { margin: 4px 0 0; color: #7e6548; font-size: 0.9rem; }
+.profile-panel { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid rgba(6, 199, 85, 0.24); border-radius: 16px; background: #f1fff6; }
+.profile-panel strong { display: block; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+.text-button { margin-left: auto; padding: 6px 0; border: 0; color: #92570a; background: transparent; font: inherit; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
+.auth-error { padding: 12px 14px; border-radius: 14px; color: #8a241d; background: #fde9e6; }
+.auth-error p { margin: 0 0 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .line-button { transition: none; }
+}

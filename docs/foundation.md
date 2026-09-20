@@ -22,7 +22,7 @@ pnpm install
 cp .env.example .env
 ```
 
-แก้ค่า `DATABASE_URL` และ `SESSION_SECRET` ใน `.env` ให้ตรงกับเครื่องของคุณ ค่า `SESSION_SECRET` ต้องมีความยาวอย่างน้อย 32 ตัวอักษร
+แก้ค่า `DATABASE_URL` และ `SESSION_SECRET` ใน `.env` ให้ตรงกับเครื่องของคุณ ค่า `SESSION_SECRET` ต้องมีความยาวอย่างน้อย 32 ตัวอักษร สำหรับ Phase 2 ให้ตั้งค่า `VITE_LIFF_ID` เป็น LIFF ID จาก LINE Developers Console และตั้งค่า `LINE_CHANNEL_ID` เป็น Channel ID เดียวกับ LIFF app
 
 รัน frontend และ backend พร้อมกัน:
 
@@ -50,6 +50,8 @@ migration ที่สร้างแล้วต้องอ่านและ�
 
 ## สิ่งที่มีใน Foundation
 
-Backend มี health endpoint, tRPC router เริ่มต้น, environment validation และ PostgreSQL schema เบื้องต้นสำหรับ users, menus และ orders ส่วน frontend มี React application shell ที่เรียก health endpoint และแสดงสถานะการเชื่อมต่อ API
+Backend มี health endpoint, tRPC router เริ่มต้น, environment validation, LINE ID token verification และ PostgreSQL schema เบื้องต้นสำหรับ users, menus และ orders ส่วน frontend มี React application shell ที่เรียก health endpoint และแสดงสถานะการเชื่อมต่อ API รวมถึงปุ่ม login ด้วย LINE
 
-ระบบยังไม่รวม LINE authentication, order workflow, payment, notification worker หรือการเชื่อมฐานข้อมูลจริงใน runtime ซึ่งจะเพิ่มใน Phase ถัดไปหลังจากยืนยัน provider และ environment ของ deployment แล้ว
+ระบบ authentication มี `POST /api/auth/line`, `GET /api/auth/me` และ `POST /api/auth/logout` โดย backend ตรวจ ID token ผ่าน LINE ก่อนออก HttpOnly session cookie และไม่รับข้อมูล profile ที่ frontend ส่งมาเอง
+
+ระบบยังไม่รวม order workflow, payment, notification worker หรือการบันทึก user ลงฐานข้อมูลจริงใน runtime ซึ่งจะเพิ่มใน Phase ถัดไปหลังจากยืนยัน provider และ environment ของ deployment แล้ว
