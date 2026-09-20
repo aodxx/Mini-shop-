@@ -113,6 +113,20 @@ pnpm --filter @mini-shop/server db:migrate
 
 ห้ามแก้ migration ที่ apply ไปแล้วใน shared environment ให้สร้าง migration ใหม่แทน Migration ที่ทำลายข้อมูลต้องมี backup plan, rollback plan และ issue ที่อธิบายผลกระทบ
 
+## 5.1 Neon initial setup
+
+สำหรับ Neon ที่ยังว่าง ให้ใช้วิธีใดวิธีหนึ่งเท่านั้น:
+
+วิธีที่แนะนำคือใช้ Drizzle migration จาก repository:
+
+```bash
+pnpm --filter @mini-shop/server db:migrate
+```
+
+หากต้องการใช้ Neon SQL Editor สามารถใช้ SQL ฉบับตรวจสอบได้ที่ [`docs/neon-bootstrap.sql`](docs/neon-bootstrap.sql) ไฟล์นี้เป็น manual equivalent ของ migration ปัจจุบันและเหมาะสำหรับ empty database เท่านั้น ห้ามรัน SQL นี้แล้วรัน `db:migrate` ต่อบน database เดียวกันโดยไม่ reconcile Drizzle migration history เพราะจะเกิดการสร้างตารางซ้ำ
+
+SQL bootstrap เพิ่ม check constraints สำหรับ stock, reserved quantity, price และ order item quantity เพื่อป้องกันข้อมูลผิดรูปแบบตั้งแต่ระดับ database ส่วน owner/admin user ไม่ได้ถูก seed เพราะต้องมาจาก LINE identity ที่ login ผ่าน backend ก่อน
+
 ## 6. Required future tables
 
 ก่อน production ควรพิจารณา `order_events` สำหรับ audit trail, `payments` สำหรับแยก payment attempts, `inventory_adjustments` สำหรับผู้แก้ stock/เหตุผล, และ `jobs` หรือ provider queue สำหรับ reservation expiry/reconciliation โดยต้องออกแบบใน ADR ก่อน
