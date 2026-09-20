@@ -102,6 +102,13 @@ h3 { margin: 3px 0 6px; font-size: 1.18rem; }
 .stock-admin-row > div:first-child { display: grid; gap: 4px; }
 .stock-controls { display: flex; align-items: center; gap: 8px; }
 .stock-controls input { width: 82px; }
+.database-test-panel { margin: 18px 0 22px; padding: 16px; border: 1px solid rgba(6, 126, 57, 0.16); border-radius: 14px; background: rgba(255, 255, 255, 0.72); }
+.database-test-panel .section-heading { margin-bottom: 12px; }
+.database-status { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 10px; color: #0b6530; background: #e4f7eb; font-size: 0.86rem; }
+.user-table-wrap { overflow-x: auto; margin-top: 12px; }
+.user-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.user-table th, .user-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid rgba(6, 126, 57, 0.12); white-space: nowrap; }
+.user-table th { color: #087b39; font-size: 0.76rem; letter-spacing: 0.04em; text-transform: uppercase; }
 
 @media (prefers-reduced-motion: reduce) {
   .line-button { transition: none; }
@@ -119,4 +126,6 @@ h3 { margin: 3px 0 6px; font-size: 1.18rem; }
   .admin-order-row, .stock-admin-row { align-items: flex-start; flex-direction: column; }
   .admin-order-row select, .stock-controls { width: 100%; }
   .admin-order-row select { width: 100%; }
+  .database-test-panel .section-heading { align-items: flex-start; flex-direction: column; }
+  .database-test-panel .text-button { margin-left: 0; }
 }

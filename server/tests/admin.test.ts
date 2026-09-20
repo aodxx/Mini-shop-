@@ -25,12 +25,16 @@ function createHarness(role: 'customer' | 'staff' | 'manager' | 'owner' = 'staff
     list: vi.fn(async () => [product]),
     adjustStock: vi.fn(async (_id: string, delta: number) => ({ ...product, stockQuantity: product.stockQuantity + delta })),
   } as unknown as ProductRepository;
+  const userRepository = {
+    listForAdmin: vi.fn(async () => [{ id: 'user-1', displayName: 'Admin', role: 'staff', createdAt: '2026-09-20T00:00:00.000Z' }]),
+  };
   const orderRepository = {
     listAll: vi.fn(async () => [order]),
     updateStatus: vi.fn(async (_id: string, status: string) => ({ ...order, status })),
   } as unknown as OrderRepository;
   const app = createApp({
     authService,
+    userRepository,
     productRepository,
     orderRepository,
     env: {
@@ -39,7 +43,7 @@ function createHarness(role: 'customer' | 'staff' | 'manager' | 'owner' = 'staff
       LINE_CHANNEL_ID: 'line-channel',
     },
   });
-  return { app, productRepository, orderRepository };
+  return { app, productRepository, orderRepository, userRepository };
 }
 
 describe('admin dashboard API', () => {
@@ -96,5 +100,22 @@ describe('admin dashboard API', () => {
       payload: { delta: 0 },
     });
     expect(invalid.statusCode).toBe(400);
+  });
+
+  it('returns database connectivity and safe user fields for admin diagnostics', async () => {
+    const harness = createHarness('owner');
+    apps.push(harness.app);
+    const response = await harness.app.inject({
+      method: 'GET', url: '/api/admin/database',
+      headers: { cookie: 'mini_shop_session=session-token' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      database: { status: 'connected', provider: 'postgresql' },
+      users: [{ id: 'user-1', displayName: 'Admin', role: 'staff' }],
+    });
+    expect(response.json().users[0]).not.toHaveProperty('lineUserId');
+    expect(harness.userRepository.listForAdmin).toHaveBeenCalledWith(50);
   });
 });

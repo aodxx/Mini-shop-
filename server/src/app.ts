@@ -160,6 +160,24 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     return requireProductManager(request, reply);
   }
 
+  app.get('/api/admin/database', async (request, reply) => {
+    if (!userRepository || !(await requireAdmin(request, reply))) return reply;
+
+    try {
+      const users = await userRepository.listForAdmin(50);
+      return reply.send({
+        database: {
+          status: 'connected',
+          provider: 'postgresql',
+          checkedAt: new Date().toISOString(),
+        },
+        users,
+      });
+    } catch {
+      return reply.code(503).send({ error: 'Database connection check failed' });
+    }
+  });
+
   app.get<{ Querystring: { category?: string; includeInactive?: string } }>('/api/products', async (request, reply) => {
     if (!productRepository) return reply.code(503).send({ error: 'Product repository is unavailable' });
     const includeInactive = request.query.includeInactive === 'true';

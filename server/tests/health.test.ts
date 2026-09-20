@@ -24,6 +24,7 @@ describe('GET /health', () => {
       userRepository: {
         upsertFromLine: async () => ({ id: 'user-test', lineUserId: 'test', displayName: 'Test', role: 'customer' as const }),
         findByLineUserId: async () => null,
+        listForAdmin: async () => [],
       },
       productRepository: {
         list: async () => [],

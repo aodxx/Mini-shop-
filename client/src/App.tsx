@@ -4,6 +4,7 @@ import { getCurrentUser, loginWithLine, logoutFromLine, type AuthUser } from './
 import { addProductToCart, clearCart, loadCart, updateCartQuantity, type CartItem } from './cart';
 import { cancelOrder, createOrder, listOrders, startPayment, type Order } from './orders';
 import { createProduct, deactivateProduct, listProducts, type Product } from './products';
+import { loadDatabaseDiagnostics, type DatabaseDiagnostics } from './database';
 import './styles.css';
 
 type HealthResponse = { status: string; service: string };
@@ -36,6 +37,9 @@ export default function App() {
   const [adminSearch, setAdminSearch] = useState('');
   const [adminError, setAdminError] = useState<string | null>(null);
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
+  const [databaseDiagnostics, setDatabaseDiagnostics] = useState<DatabaseDiagnostics | null>(null);
+  const [databaseLoading, setDatabaseLoading] = useState(false);
+  const [databaseError, setDatabaseError] = useState<string | null>(null);
   const canManageProducts = Boolean(user && productManagers.has(user.role));
 
   useEffect(() => {
@@ -224,6 +228,19 @@ export default function App() {
     }
   }
 
+  async function handleDatabaseCheck() {
+    setDatabaseLoading(true);
+    setDatabaseError(null);
+    try {
+      setDatabaseDiagnostics(await loadDatabaseDiagnostics());
+    } catch (error) {
+      setDatabaseDiagnostics(null);
+      setDatabaseError(error instanceof Error ? error.message : 'ตรวจสอบ Neon database ไม่สำเร็จ');
+    } finally {
+      setDatabaseLoading(false);
+    }
+  }
+
   return (
     <main className="shell">
       <section className="app-card" aria-labelledby="app-title">
@@ -292,6 +309,14 @@ export default function App() {
           <section className="admin-dashboard" aria-labelledby="admin-dashboard-title">
             <div className="section-heading"><div><p className="eyebrow">ADMIN DASHBOARD</p><h2 id="admin-dashboard-title">จัดการออเดอร์และสต็อก</h2></div><button className="text-button" type="button" onClick={() => void listAdminOrders(adminOrderStatus === 'all' ? undefined : adminOrderStatus, adminSearch).then(setAdminOrders)}>รีเฟรช</button></div>
             {adminError && <p className="auth-error">{adminError}</p>}
+            <div className="database-test-panel">
+              <div className="section-heading"><div><p className="eyebrow">NEON DATABASE TEST</p><h3>ทดสอบการเชื่อมต่อและข้อมูลผู้ใช้</h3><p className="muted">แสดงเฉพาะ id, display name, role และวันที่สร้าง โดยไม่ส่ง LINE user ID ไปที่ browser</p></div><button className="text-button" type="button" disabled={databaseLoading} onClick={() => void handleDatabaseCheck()}>{databaseLoading ? 'กำลังตรวจสอบ...' : 'ตรวจสอบ Neon'}</button></div>
+              {databaseError && <p className="auth-error">{databaseError}</p>}
+              {databaseDiagnostics && <>
+                <div className="database-status"><span className="status-dot" />เชื่อมต่อ PostgreSQL สำเร็จ · ตรวจเมื่อ {new Date(databaseDiagnostics.database.checkedAt).toLocaleString('th-TH')}</div>
+                <div className="user-table-wrap"><table className="user-table"><thead><tr><th>ชื่อผู้ใช้</th><th>Role</th><th>สร้างเมื่อ</th></tr></thead><tbody>{databaseDiagnostics.users.map((databaseUser) => <tr key={databaseUser.id}><td>{databaseUser.displayName}</td><td><span className="order-status order-ready">{databaseUser.role}</span></td><td>{new Date(databaseUser.createdAt).toLocaleString('th-TH')}</td></tr>)}</tbody></table></div>
+              </>}
+            </div>
             <div className="admin-filters">
               <input aria-label="ค้นหาออเดอร์" placeholder="ค้นหาเลขออเดอร์" value={adminSearch} onChange={(event) => setAdminSearch(event.target.value)} />
               <select aria-label="กรองสถานะออเดอร์" value={adminOrderStatus} onChange={(event) => setAdminOrderStatus(event.target.value)}><option value="all">ทุกสถานะ</option><option value="pending">รอชำระเงิน</option><option value="paid">ชำระแล้ว</option><option value="cooking">กำลังทำ</option><option value="ready">พร้อมรับ</option><option value="completed">เสร็จสิ้น</option><option value="cancelled">ยกเลิก</option></select>

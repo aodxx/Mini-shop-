@@ -79,10 +79,13 @@ Payment request ต้องคืน `paymentUrl` และ transaction data �
 
 | Method | Path | Query/body | หน้าที่ |
 |---|---|---|---|
+| GET | `/api/admin/database` | - | ตรวจ database connectivity และแสดง user summary สูงสุด 50 รายการ |
 | GET | `/api/admin/orders` | `status`, `search` | ดู order ทั้งร้าน |
 | PATCH | `/api/admin/orders/:id/status` | `{status}` | เปลี่ยน fulfillment status |
 
-สถานะที่รับคือ `pending`, `paid`, `cooking`, `ready`, `completed`, `cancelled` ทุกคำสั่งต้อง verify role ที่ backend
+ทุกคำสั่งต้อง verify role ที่ backend โดย `/api/admin/database` คืนเฉพาะ `id`, `displayName`, `role`, `createdAt` ของ user และไม่คืน `lineUserId`
+
+สถานะที่รับคือ `pending`, `paid`, `cooking`, `ready`, `completed`, `cancelled`
 
 ## 7. State transition contract
 

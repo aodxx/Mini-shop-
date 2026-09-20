@@ -20,6 +20,8 @@ describe('LINE user repository integration', () => {
         displayName: input.displayName,
         role: 'customer' as const,
       })),
+      findByLineUserId: vi.fn(async () => null),
+      listForAdmin: vi.fn(async () => []),
     };
     const service = createAuthService({
       channelId: 'channel-123',

@@ -18,9 +18,17 @@ export type AuthenticatedUser = {
   role: UserRole;
 };
 
+export type AdminUserSummary = {
+  id: string;
+  displayName: string;
+  role: UserRole;
+  createdAt: string;
+};
+
 export interface UserRepository {
   upsertFromLine(input: LineUserInput): Promise<AuthenticatedUser>;
   findByLineUserId(lineUserId: string): Promise<AuthenticatedUser | null>;
+  listForAdmin(limit: number): Promise<AdminUserSummary[]>;
 }
 
 function toAuthenticatedUser(user: User): AuthenticatedUser {
@@ -67,6 +75,22 @@ export function createUserRepository(db: Database): UserRepository {
         .limit(1);
 
       return user ? toAuthenticatedUser(user) : null;
+    },
+
+    async listForAdmin(limit) {
+      const rows = await db.select({
+        id: users.id,
+        displayName: users.displayName,
+        role: users.role,
+        createdAt: users.createdAt,
+      }).from(users).orderBy(users.createdAt).limit(limit);
+
+      return rows.map((user) => ({
+        id: user.id,
+        displayName: user.displayName,
+        role: user.role,
+        createdAt: user.createdAt.toISOString(),
+      }));
     },
   };
 }
