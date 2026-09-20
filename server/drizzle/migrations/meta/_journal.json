@@ -22,6 +22,13 @@
       "when": 1789889681890,
       "tag": "0002_hot_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789890123299,
+      "tag": "0003_dazzling_black_tom",
+      "breakpoints": true
     }
   ]
 }

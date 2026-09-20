@@ -7,6 +7,8 @@ import { closeDatabase, getDatabase } from './db/client.js';
 import { parseEnv, type AppEnv } from './env.js';
 import { createOrderRepository, type OrderRepository } from './orders/repository.js';
 import { createOrderService, type OrderService } from './orders/service.js';
+import { createLinePayGateway } from './payments/line-pay.js';
+import { createPaymentService, type PaymentService } from './payments/service.js';
 import {
   createProductRepository,
   type CreateProductInput,
@@ -26,6 +28,7 @@ type AppOptions = {
   productRepository?: ProductRepository;
   orderRepository?: OrderRepository;
   orderService?: OrderService;
+  paymentService?: PaymentService;
 };
 
 function getSessionToken(request: FastifyRequest) {
@@ -49,6 +52,21 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
   const orderService = options.orderService ?? (
     productRepository && orderRepository
       ? createOrderService({ productRepository, orderRepository })
+      : undefined
+  );
+  const paymentService = options.paymentService ?? (
+    orderRepository && env.LINE_PAY_CHANNEL_ID && env.LINE_PAY_CHANNEL_SECRET && env.PAYMENT_CALLBACK_URL
+      ? createPaymentService({
+        orderRepository,
+        gateway: createLinePayGateway({
+          channelId: env.LINE_PAY_CHANNEL_ID,
+          channelSecret: env.LINE_PAY_CHANNEL_SECRET,
+          environment: env.LINE_PAY_ENV ?? 'sandbox',
+          callbackUrl: env.PAYMENT_CALLBACK_URL,
+          cancelUrl: env.CLIENT_ORIGIN,
+          ...(env.LINE_PAY_MERCHANT_DEVICE_PROFILE_ID ? { merchantDeviceProfileId: env.LINE_PAY_MERCHANT_DEVICE_PROFILE_ID } : {}),
+        }),
+      })
       : undefined
   );
 
@@ -105,6 +123,7 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     name: z.string().trim().min(1).max(160),
     description: z.string().trim().max(1000).optional(),
     priceSatang: z.number().int().nonnegative(),
+    stockQuantity: z.number().int().nonnegative().default(0),
     imageUrl: z.string().url().optional(),
     category: z.string().trim().min(1).max(80).default('ทั่วไป'),
     isActive: z.boolean().default(true),
@@ -156,6 +175,7 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     const input: CreateProductInput = {
       name: parsed.data.name,
       priceSatang: parsed.data.priceSatang,
+      stockQuantity: parsed.data.stockQuantity,
       category: parsed.data.category,
       isActive: parsed.data.isActive,
       sortOrder: parsed.data.sortOrder,
@@ -253,6 +273,29 @@ export function createApp(options: AppOptions = {}): FastifyInstance {
     const cancelled = await orderService.cancelOrder(user.id!, request.params.id);
     if (!cancelled) return reply.code(409).send({ error: 'Order cannot be cancelled' });
     return reply.code(204).send();
+  });
+
+  app.post<{ Params: { id: string } }>('/api/orders/:id/payment', async (request, reply) => {
+    if (!paymentService) return reply.code(503).send({ error: 'Payment gateway is not configured' });
+    const user = await requireOrderUser(request, reply);
+    if (!user) return reply;
+    try {
+      const result = await paymentService.startPayment(user.id!, request.params.id);
+      return reply.send(result);
+    } catch (error) {
+      return reply.code(400).send({ error: error instanceof Error ? error.message : 'Unable to start payment' });
+    }
+  });
+
+  app.get<{ Querystring: { transactionId?: string; orderId?: string } }>('/api/payments/line/confirm', async (request, reply) => {
+    if (!paymentService) return reply.code(503).send({ error: 'Payment gateway is not configured' });
+    if (!request.query.transactionId) return reply.code(400).send({ error: 'transactionId is required' });
+    try {
+      const order = await paymentService.confirmPayment(request.query.transactionId);
+      return reply.redirect(`${env.CLIENT_ORIGIN}/?payment=success&orderId=${encodeURIComponent(order.id)}`);
+    } catch (error) {
+      return reply.redirect(`${env.CLIENT_ORIGIN}/?payment=failed&message=${encodeURIComponent(error instanceof Error ? error.message : 'Payment failed')}`);
+    }
   });
 
   app.register(fastifyTRPCPlugin, {

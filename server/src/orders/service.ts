@@ -9,6 +9,10 @@ export type Order = {
   orderNumber: string;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  paymentProvider?: string;
+  paymentTransactionId?: string;
+  paymentUrl?: string;
+  paidAt?: string;
   subtotalSatang: number;
   deliveryFeeSatang: number;
   totalSatang: number;
@@ -50,6 +54,9 @@ export function createOrderService(dependencies: {
       const items: NewOrderItem[] = [...quantities.entries()].map(([productId, quantity]) => {
         const product = productsById.get(productId);
         if (!product) throw new Error('One or more products are unavailable');
+        if (product.stockQuantity - product.reservedQuantity < quantity) {
+          throw new Error(`Insufficient stock for product ${productId}`);
+        }
         return {
           productId,
           productName: product.name,

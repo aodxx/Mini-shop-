@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getCurrentUser, loginWithLine, logoutFromLine, type AuthUser } from './auth';
 import { addProductToCart, clearCart, loadCart, updateCartQuantity, type CartItem } from './cart';
-import { cancelOrder, createOrder, listOrders, type Order } from './orders';
+import { cancelOrder, createOrder, listOrders, startPayment, type Order } from './orders';
 import { createProduct, deactivateProduct, listProducts, type Product } from './products';
 import './styles.css';
 
@@ -24,6 +24,7 @@ export default function App() {
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
   const [newProductCategory, setNewProductCategory] = useState('ทั่วไป');
+  const [newProductStock, setNewProductStock] = useState('0');
   const [savingProduct, setSavingProduct] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -60,6 +61,10 @@ export default function App() {
 
   useEffect(() => {
     setCart(loadCart());
+    const payment = new URLSearchParams(window.location.search).get('payment');
+    if (payment === 'success') setOrderError('ชำระเงินสำเร็จแล้ว');
+    if (payment === 'failed') setOrderError('การชำระเงินไม่สำเร็จ กรุณาลองใหม่');
+    if (payment) window.history.replaceState({}, '', window.location.pathname);
   }, []);
 
   useEffect(() => {
@@ -112,10 +117,12 @@ export default function App() {
         name: newProductName,
         priceSatang: Math.round(Number(newProductPrice) * 100),
         category: newProductCategory,
+        stockQuantity: Math.max(0, Math.floor(Number(newProductStock))),
       });
       setProducts((current) => [...current, product].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)));
       setNewProductName('');
       setNewProductPrice('');
+      setNewProductStock('0');
     } catch {
       setProductsError('บันทึกสินค้าไม่สำเร็จ');
     } finally {
@@ -165,6 +172,15 @@ export default function App() {
     }
   }
 
+  async function handleStartPayment(orderId: string) {
+    try {
+      const result = await startPayment(orderId);
+      window.location.assign(result.paymentUrl);
+    } catch (error) {
+      setOrderError(error instanceof Error ? error.message : 'เริ่มการชำระเงินไม่สำเร็จ');
+    }
+  }
+
   const canManageProducts = Boolean(user && productManagers.has(user.role));
 
   return (
@@ -205,8 +221,8 @@ export default function App() {
               {products.map((product) => (
                 <article className={`product-card ${product.isActive ? '' : 'product-inactive'}`} key={product.id}>
                   {product.imageUrl && <img className="product-image" src={product.imageUrl} alt="" />}
-                  <div className="product-info"><span className="product-category">{product.category}</span><h3>{product.name}</h3>{product.description && <p>{product.description}</p>}<strong>{formatPrice(product.priceSatang)}</strong></div>
-                  {product.isActive && <button className="cart-button" type="button" onClick={() => handleAddToCart(product)}>เพิ่มลงตะกร้า</button>}
+                  <div className="product-info"><span className="product-category">{product.category}</span><h3>{product.name}</h3>{product.description && <p>{product.description}</p>}<span className="stock-label">เหลือ {Math.max(0, product.stockQuantity - product.reservedQuantity)} ชิ้น</span><strong>{formatPrice(product.priceSatang)}</strong></div>
+                  {product.isActive && <button className="cart-button" disabled={product.stockQuantity - product.reservedQuantity < 1} type="button" onClick={() => handleAddToCart(product)}>{product.stockQuantity - product.reservedQuantity > 0 ? 'เพิ่มลงตะกร้า' : 'สินค้าหมด'}</button>}
                   {canManageProducts && product.isActive && <button className="text-button product-action" type="button" onClick={() => handleDeactivate(product)}>ปิดขาย</button>}
                 </article>
               ))}
@@ -227,7 +243,7 @@ export default function App() {
         {user && orders.length > 0 && (
           <section className="orders-section" aria-labelledby="orders-title">
             <div className="section-heading"><div><p className="eyebrow">ORDER HISTORY</p><h2 id="orders-title">ออเดอร์ของฉัน</h2></div></div>
-            <div className="order-list">{orders.map((order) => <article className="order-row" key={order.id}><div><strong>{order.orderNumber}</strong><p className="muted">{order.items.map((item) => `${item.productName} × ${item.quantity}`).join(' · ')}</p></div><div className="order-summary"><span className={`order-status order-${order.status}`}>{order.status}</span><strong>{formatPrice(order.totalSatang)}</strong>{order.status === 'pending' && <button className="text-button" type="button" onClick={() => handleCancelOrder(order.id)}>ยกเลิก</button>}</div></article>)}</div>
+            <div className="order-list">{orders.map((order) => <article className="order-row" key={order.id}><div><strong>{order.orderNumber}</strong><p className="muted">{order.items.map((item) => `${item.productName} × ${item.quantity}`).join(' · ')}</p></div><div className="order-summary"><span className={`order-status order-${order.status}`}>{order.status}</span><strong>{formatPrice(order.totalSatang)}</strong>{order.paymentStatus !== 'paid' && order.status !== 'cancelled' && <button className="text-button" type="button" onClick={() => handleStartPayment(order.id)}>ชำระเงิน</button>}{order.status === 'pending' && <button className="text-button" type="button" onClick={() => handleCancelOrder(order.id)}>ยกเลิก</button>}</div></article>)}</div>
           </section>
         )}
 
@@ -240,6 +256,7 @@ export default function App() {
               <label>ชื่อสินค้า<input required value={newProductName} onChange={(event) => setNewProductName(event.target.value)} /></label>
               <label>ราคา (บาท)<input required min="0" step="0.01" type="number" value={newProductPrice} onChange={(event) => setNewProductPrice(event.target.value)} /></label>
               <label>หมวดหมู่<input required value={newProductCategory} onChange={(event) => setNewProductCategory(event.target.value)} /></label>
+              <label>จำนวนสต็อก<input required min="0" step="1" type="number" value={newProductStock} onChange={(event) => setNewProductStock(event.target.value)} /></label>
               <button className="line-button" disabled={savingProduct} type="submit">{savingProduct ? 'กำลังบันทึก...' : 'เพิ่มสินค้า'}</button>
             </form>
           </section>

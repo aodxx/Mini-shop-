@@ -17,6 +17,8 @@ const product: Product = {
   name: 'ชาไทย',
   description: 'ชาไทยเย็น',
   priceSatang: 4500,
+  stockQuantity: 20,
+  reservedQuantity: 0,
   imageUrl: undefined,
   category: 'เครื่องดื่ม',
   isActive: true,
@@ -73,6 +75,7 @@ describe('Product management API', () => {
     expect(repository.create).toHaveBeenCalledWith({
       name: 'กาแฟ',
       priceSatang: 5000,
+      stockQuantity: 0,
       category: 'เครื่องดื่ม',
       isActive: true,
       sortOrder: 0,

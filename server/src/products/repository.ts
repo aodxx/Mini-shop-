@@ -7,6 +7,8 @@ export type Product = {
   name: string;
   description?: string;
   priceSatang: number;
+  stockQuantity: number;
+  reservedQuantity: number;
   imageUrl?: string;
   category: string;
   isActive: boolean;
@@ -17,6 +19,7 @@ export type CreateProductInput = {
   name: string;
   description?: string;
   priceSatang: number;
+  stockQuantity?: number;
   imageUrl?: string;
   category: string;
   isActive?: boolean;
@@ -46,6 +49,8 @@ function toProduct(menu: Menu): Product {
     name: menu.name,
     ...(menu.description ? { description: menu.description } : {}),
     priceSatang: menu.priceSatang,
+    stockQuantity: menu.stockQuantity,
+    reservedQuantity: menu.reservedQuantity,
     ...(menu.imageUrl ? { imageUrl: menu.imageUrl } : {}),
     category: menu.category,
     isActive: menu.isActive,
@@ -84,6 +89,7 @@ export function createProductRepository(db: Database): ProductRepository {
         .values({
           name: input.name,
           priceSatang: input.priceSatang,
+          stockQuantity: input.stockQuantity ?? 0,
           category: input.category,
           isActive: input.isActive ?? true,
           sortOrder: input.sortOrder ?? 0,

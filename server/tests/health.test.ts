@@ -28,7 +28,7 @@ describe('GET /health', () => {
       productRepository: {
         list: async () => [],
         findActiveByIds: async () => [],
-        create: async (input) => ({ id: 'test', ...input, isActive: input.isActive ?? true, sortOrder: input.sortOrder ?? 0 }),
+        create: async (input) => ({ id: 'test', ...input, stockQuantity: input.stockQuantity ?? 0, reservedQuantity: 0, isActive: input.isActive ?? true, sortOrder: input.sortOrder ?? 0 }),
         update: async () => null,
         deactivate: async () => false,
       },
@@ -36,6 +36,10 @@ describe('GET /health', () => {
         create: async () => { throw new Error('not used'); },
         listByUser: async () => [],
         cancel: async () => false,
+        getByUser: async () => null,
+        getByTransaction: async () => null,
+        setPaymentPending: async () => { throw new Error('not used'); },
+        markPaid: async () => null,
       },
     });
     apps.add(app);

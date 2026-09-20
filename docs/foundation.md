@@ -60,6 +60,12 @@ Phase 4 เพิ่ม `ProductRepository` สำหรับตาราง `m
 
 Phase 5 เพิ่ม `order_items` และ order workflow โดยมี `POST /api/orders`, `GET /api/orders` และ `POST /api/orders/:id/cancel` ผู้ใช้ที่ login แล้วเท่านั้นจึงสร้างหรืออ่านออเดอร์ของตัวเองได้ server จะอ่านราคาและสถานะสินค้าใหม่จาก PostgreSQL ทุกครั้ง จึงไม่เชื่อราคาใน cart ของ browser และจะบันทึก order กับ item ใน transaction เดียวกัน Cart ฝั่ง React persist ใน `localStorage` เพื่อให้ผู้ใช้กลับมาใช้งานต่อได้
 
+Phase 6 เพิ่ม stock reservation และ payment lifecycle โดยสินค้าใหม่มี `stock_quantity` กับ `reserved_quantity` การ checkout จะ reserve stock แบบ atomic ภายใน transaction และการยกเลิกออเดอร์ที่ยัง `pending` จะคืน reservation ป้องกัน overselling เมื่อมี checkout พร้อมกันหลายคำขอ เพิ่ม `POST /api/orders/:id/payment` สำหรับสร้าง LINE Pay request และ `GET /api/payments/line/confirm` สำหรับ confirm callback โดย payment service ทำให้ request/confirm ซ้ำได้อย่างปลอดภัย
+
+การเปิด LINE Pay ต้องตั้งค่า `LINE_PAY_CHANNEL_ID`, `LINE_PAY_CHANNEL_SECRET`, `PAYMENT_CALLBACK_URL` และใช้ `LINE_PAY_ENV=sandbox` ระหว่างพัฒนา ระบบใช้ HMAC-SHA256 ตาม LINE Pay Online API v3 และไม่ควรใส่ secret ลง Git สามารถทดสอบกับ LINE Pay sandbox ก่อนเปลี่ยนเป็น production
+
+อ้างอิง: [LINE Pay Payment Request](https://developers-pay.line.me/online-api-v3/request-payment), [LINE Pay Payment Confirmation](https://developers-pay.line.me/online-api-v3/confirm-payment) และ [LINE MINI App payment availability](https://developers.line.biz/en/docs/line-mini-app/develop/payment/)
+
 ## สิ่งที่มีใน Foundation
 
 Backend มี health endpoint, tRPC router เริ่มต้น, environment validation, LINE ID token verification และ PostgreSQL schema เบื้องต้นสำหรับ users, menus และ orders ส่วน frontend มี React application shell ที่เรียก health endpoint และแสดงสถานะการเชื่อมต่อ API รวมถึงปุ่ม login ด้วย LINE

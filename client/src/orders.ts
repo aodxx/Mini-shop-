@@ -5,6 +5,8 @@ export type Order = {
   orderNumber: string;
   status: string;
   paymentStatus: string;
+  paymentUrl?: string;
+  paymentTransactionId?: string;
   subtotalSatang: number;
   deliveryFeeSatang: number;
   totalSatang: number;
@@ -33,6 +35,11 @@ export async function createOrder(items: CartItem[]): Promise<Order> {
 export async function listOrders(): Promise<Order[]> {
   const response = await fetch(`${apiUrl}/api/orders`, { credentials: 'include' });
   return (await responseJson<{ orders: Order[] }>(response)).orders;
+}
+
+export async function startPayment(orderId: string): Promise<{ paymentUrl: string; order: Order }> {
+  const response = await fetch(`${apiUrl}/api/orders/${orderId}/payment`, { method: 'POST', credentials: 'include' });
+  return responseJson<{ paymentUrl: string; order: Order }>(response);
 }
 
 export async function cancelOrder(orderId: string): Promise<void> {

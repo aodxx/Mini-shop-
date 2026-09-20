@@ -62,10 +62,12 @@ h3 { margin: 3px 0 6px; font-size: 1.18rem; }
 .product-image { width: calc(100% + 36px); height: 130px; margin: -18px -18px 14px; object-fit: cover; }
 .product-info { display: flex; flex-direction: column; align-items: flex-start; min-height: 120px; }
 .product-info strong { margin-top: auto; color: #92570a; }
+.stock-label { margin: 7px 0; color: #7e6548; font-size: 0.76rem; }
 .product-category { color: #a8793d; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; }
 .product-inactive { opacity: 0.58; }
 .product-action { position: absolute; right: 16px; bottom: 14px; }
 .cart-button { width: 100%; margin-top: 14px; padding: 9px 10px; border: 1px solid rgba(6, 199, 85, 0.35); border-radius: 10px; color: #087b39; background: #effff5; font: inherit; font-size: 0.84rem; font-weight: 800; cursor: pointer; }
+.cart-button:disabled { border-color: #e1d8cb; color: #9b8b79; background: #f4eee7; cursor: not-allowed; }
 .manager-panel { margin-top: 34px; padding: 22px; border-radius: 18px; background: #fff1cc; }
 .manager-panel .eyebrow { margin-bottom: 6px; }
 .product-form { display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; align-items: end; gap: 12px; margin-top: 16px; }

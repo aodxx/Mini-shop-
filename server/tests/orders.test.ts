@@ -8,6 +8,8 @@ const menuProduct = {
   name: 'ชาไทย',
   description: 'ชาไทยเย็น',
   priceSatang: 4500,
+  stockQuantity: 20,
+  reservedQuantity: 0,
   category: 'เครื่องดื่ม',
   isActive: true,
   sortOrder: 1,
@@ -36,6 +38,10 @@ describe('Order service', () => {
       })),
       listByUser: vi.fn(),
       cancel: vi.fn(),
+      getByUser: vi.fn(),
+      getByTransaction: vi.fn(),
+      setPaymentPending: vi.fn(),
+      markPaid: vi.fn(),
     };
     const service = createOrderService({ productRepository, orderRepository });
 
@@ -64,6 +70,10 @@ describe('Order service', () => {
       create: vi.fn(),
       listByUser: vi.fn(),
       cancel: vi.fn(),
+      getByUser: vi.fn(),
+      getByTransaction: vi.fn(),
+      setPaymentPending: vi.fn(),
+      markPaid: vi.fn(),
     };
     const service = createOrderService({ productRepository, orderRepository });
 
@@ -90,6 +100,10 @@ describe('Order service', () => {
       })),
       listByUser: vi.fn(async () => []),
       cancel: vi.fn(async () => true),
+      getByUser: vi.fn(),
+      getByTransaction: vi.fn(),
+      setPaymentPending: vi.fn(),
+      markPaid: vi.fn(),
     };
     const env = {
       NODE_ENV: 'test' as const, PORT: 3000,

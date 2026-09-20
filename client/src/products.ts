@@ -3,6 +3,8 @@ export type Product = {
   name: string;
   description?: string;
   priceSatang: number;
+  stockQuantity: number;
+  reservedQuantity: number;
   imageUrl?: string;
   category: string;
   isActive: boolean;
@@ -13,6 +15,7 @@ export type ProductInput = {
   name: string;
   description?: string;
   priceSatang: number;
+  stockQuantity?: number;
   category: string;
   imageUrl?: string;
   isActive?: boolean;
