@@ -3,7 +3,9 @@ import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import { createAuthService, type AuthService } from './auth.js';
+import { closeDatabase, getDatabase } from './db/client.js';
 import { parseEnv, type AppEnv } from './env.js';
+import { createUserRepository, type UserRepository } from './users/repository.js';
 import { appRouter } from './trpc.js';
 
 const SESSION_COOKIE = 'mini_shop_session';
@@ -11,6 +13,7 @@ const SESSION_COOKIE = 'mini_shop_session';
 type AppOptions = {
   authService?: AuthService;
   env?: AppEnv;
+  userRepository?: UserRepository;
 };
 
 function getSessionToken(request: FastifyRequest) {
@@ -20,10 +23,17 @@ function getSessionToken(request: FastifyRequest) {
 export function createApp(options: AppOptions = {}): FastifyInstance {
   const app = Fastify({ logger: false });
   const env = options.env ?? parseEnv();
+  const userRepository = options.userRepository
+    ?? (options.authService ? undefined : createUserRepository(getDatabase()));
   const authService = options.authService ?? createAuthService({
     channelId: env.LINE_CHANNEL_ID,
     sessionSecret: env.SESSION_SECRET,
+    ...(userRepository ? { userRepository } : {}),
   });
+
+  if (!options.authService && !options.userRepository) {
+    app.addHook('onClose', async () => closeDatabase());
+  }
 
   app.register(cookie);
   app.register(cors, { origin: env.CLIENT_ORIGIN, credentials: true });

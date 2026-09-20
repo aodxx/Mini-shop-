@@ -19,7 +19,13 @@ afterEach(async () => {
 
 describe('GET /health', () => {
   it('returns a healthy service response', async () => {
-    const app = createApp({ env: testEnv });
+    const app = createApp({
+      env: testEnv,
+      userRepository: {
+        upsertFromLine: async () => ({ lineUserId: 'test', displayName: 'Test', role: 'customer' as const }),
+        findByLineUserId: async () => null,
+      },
+    });
     apps.add(app);
 
     const response = await app.inject({ method: 'GET', url: '/health' });

@@ -48,6 +48,14 @@ pnpm --filter @mini-shop/server db:generate
 
 migration ที่สร้างแล้วต้องอ่านและตรวจสอบก่อนนำไป apply กับฐานข้อมูลจริง
 
+เมื่อตั้งค่า PostgreSQL แล้ว ให้ apply migration ด้วยคำสั่ง:
+
+```bash
+pnpm --filter @mini-shop/server db:migrate
+```
+
+Phase 3 เชื่อม `UserRepository` เข้ากับตาราง `users` ด้วย Drizzle โดยการ login ผ่าน LINE จะ upsert `line_user_id`, ชื่อ และรูปโปรไฟล์ที่ได้จาก token ที่ LINE ตรวจสอบแล้วก่อนสร้าง session
+
 ## สิ่งที่มีใน Foundation
 
 Backend มี health endpoint, tRPC router เริ่มต้น, environment validation, LINE ID token verification และ PostgreSQL schema เบื้องต้นสำหรับ users, menus และ orders ส่วน frontend มี React application shell ที่เรียก health endpoint และแสดงสถานะการเชื่อมต่อ API รวมถึงปุ่ม login ด้วย LINE

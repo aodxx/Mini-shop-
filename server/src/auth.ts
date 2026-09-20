@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { z } from 'zod';
+import type { UserRepository, UserRole } from './users/repository.js';
 
 const lineTokenPayloadSchema = z.object({
   iss: z.literal('https://access.line.me'),
@@ -17,12 +18,13 @@ export type AuthUser = {
   lineUserId: string;
   displayName: string;
   pictureUrl?: string;
-  role: 'customer';
+  role: UserRole;
 };
 
 type AuthServiceOptions = {
   channelId: string;
   sessionSecret: string;
+  userRepository?: UserRepository;
   fetchImpl?: typeof fetch;
 };
 
@@ -80,12 +82,14 @@ export function createAuthService(options: AuthServiceOptions) {
 
   async function authenticate(idToken: string): Promise<AuthResult> {
     const payload = await verifyLineIdToken(idToken);
-    const user: AuthUser = {
+    const identity = {
       lineUserId: payload.sub,
       displayName: payload.name ?? 'LINE user',
       ...(payload.picture ? { pictureUrl: payload.picture } : {}),
-      role: 'customer',
     };
+    const user: AuthUser = options.userRepository
+      ? await options.userRepository.upsertFromLine(identity)
+      : { ...identity, role: 'customer' };
 
     return { user, sessionToken: await createSession(user) };
   }
@@ -98,7 +102,7 @@ export function createAuthService(options: AuthServiceOptions) {
     if (
       typeof payload.lineUserId !== 'string' ||
       typeof payload.displayName !== 'string' ||
-      payload.role !== 'customer'
+      !['customer', 'staff', 'manager', 'owner'].includes(payload.role as string)
     ) {
       throw new Error('Invalid session');
     }
@@ -107,7 +111,7 @@ export function createAuthService(options: AuthServiceOptions) {
       lineUserId: payload.lineUserId,
       displayName: payload.displayName,
       ...(typeof payload.pictureUrl === 'string' ? { pictureUrl: payload.pictureUrl } : {}),
-      role: 'customer',
+      role: payload.role as UserRole,
     };
   }
 
